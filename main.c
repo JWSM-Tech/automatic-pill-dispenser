@@ -22,7 +22,7 @@ int main(void)
     // TODO: Initialize LCD
 
 
-    return 0;
+    __bic_SR_register(GIE + LPM0_bits);
 }
 
 //************************************************************************
