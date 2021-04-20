@@ -10,5 +10,3 @@ Sebastian Merced Adorno
 Milton Pagan Soto
 
 Jorge Vega Rodriguez
-
-Project Blog: https://gonewiththewindtunnel.wordpress.com/
