@@ -48,6 +48,8 @@
 
 // Port 2
 #define IR BIT0
+#define DISPENSER_SERVO BIT6 //P2.6
+#define LINEAR_SERVO BIT7 //P2.7
 
 // ** Analytics and Communitation **
 
