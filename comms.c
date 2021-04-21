@@ -1,8 +1,6 @@
 #include "main.h"
 #include "comms.h"
 
-char TEST_PARSE_STRING[buf_size] = "Hour:19 Minute:15 pillNames:[wept,Milton,did,op,one,bai,bee,boy] pillQuantities:[49,12,81,26,57,105,201,304]";
-
 bool finished_rx = false;
 char RX_data[buf_size];
 int new_line_count = 0;
