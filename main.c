@@ -4,6 +4,13 @@
 /**
  * main.c
  */
+
+// Global variables
+
+// Current pills in dispenser (string array 8)
+// Current pill counts (int array 8)
+// Reminders array (determine a limit)
+
 int main(void)
 {
     WDTCTL = WDTPW | WDTHOLD;	// Stop watchdog timer
@@ -19,10 +26,8 @@ int main(void)
     // previously configured port settings
     PM5CTL0 &= ~LOCKLPM5;
 
-    // TODO: Initialize LCD
 
-
-    __bic_SR_register(GIE + LPM0_bits);
+    __bis_SR_register(GIE + LPM0_bits);
 }
 
 //************************************************************************

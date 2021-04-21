@@ -95,7 +95,7 @@ void init_sched_syst(void)
     UCB1CTLW0 |= UCMODE_3 + UCMST + UCSSEL__SMCLK; // I2C master mode
     UCB1BRW = 0x10;                                // baud rate = SMCLK / 10 = ~100kHz
     UCB1CTLW1 = UCASTP_2;                          // automatic STOP assertion
-    UCB1TBCNT = 0x02;                              // TX 7 bytes of data
+    UCB1TBCNT = 0x02;                              // TX 2 bytes of data
     UCB1I2CSA = SLAVE_ADDR;                        // address slave is 12hex
     UCB1CTL1 &= ~UCSWRST;                          // eUSCI_B in operational state
     UCB1IE |= UCTXIE;                              // enable TX-interrupt
