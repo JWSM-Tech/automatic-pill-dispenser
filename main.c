@@ -27,7 +27,7 @@ int main(void)
     // previously configured port settings
     PM5CTL0 &= ~LOCKLPM5;
 
-    _bis_SR_register(GIE);
+    _bis_SR_register(GIE); //TODO verify if needed
 
     while (1)
     {

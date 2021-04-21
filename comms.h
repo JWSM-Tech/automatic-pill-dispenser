@@ -17,8 +17,6 @@
 // Defines
 
 #define buf_size 250
-#define TEST_PARSE false
-#define MAX_NEW_LINE 3
 #define hour_field "Hour"
 #define minute_field "Minute"
 #define pillNames_field "pillNames"
