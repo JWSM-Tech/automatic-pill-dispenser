@@ -1,5 +1,6 @@
-#include <msp430fr6989.h>
+#include "main.h"
 #include "init.h"
+#include "comms.h"
 
 /**
  * main.c
@@ -13,7 +14,7 @@
 
 int main(void)
 {
-    WDTCTL = WDTPW | WDTHOLD;	// Stop watchdog timer
+    WDTCTL = WDTPW | WDTHOLD; // Stop watchdog timer
 
     // System setup
 
@@ -26,11 +27,23 @@ int main(void)
     // previously configured port settings
     PM5CTL0 &= ~LOCKLPM5;
 
+    _bis_SR_register(GIE);
 
-    __bis_SR_register(GIE + LPM0_bits);
+    while (1)
+    {
+        if (finished_rx)
+        {
+            check_params(RX_data);
+            add_alarm();
+            finished_rx = false;
+        }
+        else
+        {
+            _bis_SR_register(LPM0_bits + GIE);
+        }
+    }
 }
 
 //************************************************************************
 // ISRs ******************************************************************
 //************************************************************************
-

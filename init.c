@@ -49,31 +49,6 @@ void init_sched_syst(void)
     TA0CCR0 = 0;
 
     //*** RTC SETUP ***
-    RTCCTL0_H = RTCKEY_H;            // Unlock RTC
-    RTCCTL0_L = RTCTEVIE | RTCRDYIE; // enable RTC read ready interrupt
-                                     // enable RTC time event interrupt
-
-    RTCCTL1 = RTCBCD | RTCHOLD | RTCMODE; // RTC enable, BCD mode, RTC hold
-
-    // Initial date
-
-    RTCYEAR = 0x2021; // Year = 0x2010
-    RTCMON = 0x4;     // Month = 0x04 = April
-    RTCDAY = 0x06;    // Day = 0x05 = 5th
-    RTCDOW = 0x02;    // Day of week = 0x01 = Monday
-    RTCHOUR = 0x17;   // Hour = 0x10
-    RTCMIN = 0x13;    // Minute = 0x32
-    RTCSEC = 0x00;    // Seconds = 0x45
-
-    // Alarm date
-
-    RTCADOWDAY = 0x2; // RTC Day of week alarm = 0x2
-    RTCADAY = 0x20;   // RTC Day Alarm = 0x20
-    RTCAHOUR = 0x10;  // RTC Hour Alarm
-    RTCAMIN = 0x23;   // RTC Minute Alarm
-
-    RTCCTL1 &= ~(RTCHOLD); // Start RTC
-
     // *** BUTTONS SETUP ***
 
     P2DIR &= ~(UP_BUTTON | DOWN_BUTTON | ENTER_BUTTON | BACK_BUTTON);
@@ -91,14 +66,6 @@ void init_sched_syst(void)
     P4SEL0 &= ~SDA & ~SCL;
 
     // I2C registers
-    UCB1CTL1 |= UCSWRST;                           // put eUSCI_B in reset state
-    UCB1CTLW0 |= UCMODE_3 + UCMST + UCSSEL__SMCLK; // I2C master mode
-    UCB1BRW = 0x10;                                // baud rate = SMCLK / 10 = ~100kHz
-    UCB1CTLW1 = UCASTP_2;                          // automatic STOP assertion
-    UCB1TBCNT = 0x02;                              // TX 2 bytes of data
-    UCB1I2CSA = SLAVE_ADDR;                        // address slave is 12hex
-    UCB1CTL1 &= ~UCSWRST;                          // eUSCI_B in operational state
-    UCB1IE |= UCTXIE;                              // enable TX-interrupt
 }
 
 void init_disp_mech(void)
@@ -146,7 +113,7 @@ void init_comms(void)
 {
     // Analytics and communication setup
 
-    // *** UART Setup *** 
+    // *** UART Setup ***
 
     // Pins
     P4SEL1 &= ~(TX | RX);
@@ -155,16 +122,17 @@ void init_comms(void)
     // Configure UART mode
     // NOTE: USCI_A0 is used
 
-    // TODO: Set proper baud rate
+    UCA0CTLW0 |= UCSWRST;       //eUSCI in reset
+    UCA0CTLW0 |= UCSSEL__SMCLK; //select SMCLK as source for TX/RX
 
-    UCA0CTLW0 = UCSWRST;       // Put eUSCI in reset
-    UCA0CTL1 |= UCSSEL__SMCLK; // CLK = SMCLK
-    UCA0BR0 = 8;               // 1000000/115200 = 8.68
-    UCA0MCTLW = 0xD600;        // 1000000/115200 - INT(1000000/115200)=0.68
-                               // UCBRSx value = 0xD6 (See UG)
-    UCA0BR1 = 0;
-    UCA0CTL1 &= ~UCSWRST; // release from reset
-    UCA0IE |= UCRXIE;     // Enable USCI_A0 RX interrupt
+    //    Baud Rate 115200
+    UCA0BRW = 8;        // 1000000/115200 = 8.68
+    UCA0MCTLW = 0xD600; // 1000000/115200 - INT(1000000/115200)=0.68
+                        // UCBRSx = 0.68 = 0xD6
+
+    UCA0CTLW0 &= ~UCSWRST; // init eUSCI
+    UCA0IE |= UCRXIE;      // Enable USCI_A0 RX ISR
+    UCA0IFG &= ~UCRXIFG;   //clear interrupt flags
 
     //  *** ADC Setup ***
 
