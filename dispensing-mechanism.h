@@ -18,4 +18,6 @@ void dispense_pill();
 void recalculate_variables(void);
 void reset_pill_positions(void);
 
+extern int dispensedFlag;
+
 #endif /* DISPENSING_MECHANISM_H_ */

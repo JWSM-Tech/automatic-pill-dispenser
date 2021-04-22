@@ -45,18 +45,36 @@ void init_sched_syst(void)
     // Use CCR1
 
     TA0CCTL1 = OUTMOD_7; // Reset/set output mode
-    TA0CTL = (TACLR | TASSEL__SMCLK | ID_0 | MC__UP);
+    TA0CTL = (TACLR | TASSEL__SMCLK | ID__1 | MC__UP);
     TA0CCR0 = 0;
+    TA0CCR1 = 500;
 
     //*** RTC SETUP ***
     // *** BUTTONS SETUP ***
 
-    P2DIR &= ~(UP_BUTTON | DOWN_BUTTON | ENTER_BUTTON | BACK_BUTTON);
-    P2IFG &= ~(UP_BUTTON | DOWN_BUTTON | ENTER_BUTTON | BACK_BUTTON);
-    P2IES &= ~(UP_BUTTON | DOWN_BUTTON | ENTER_BUTTON | BACK_BUTTON);
-    P2IE |= UP_BUTTON | DOWN_BUTTON | ENTER_BUTTON | BACK_BUTTON;
+    P2DIR &= ~(UP | DOWN | ENTER | BACK);
+    P2IFG &= ~(UP | DOWN | ENTER | BACK);
+    P2IES |= UP;
+    P2IES &= ~(DOWN | ENTER | BACK);
+    P2IE |= UP | DOWN | ENTER | BACK;
 
-    // Pins
+    // Configure RTC_C
+    // parametros de a~o, mes, dia, dia emana, hora, minutos
+    RTCCTL0_H = RTCKEY_H;                     // Unlock RTC
+    RTCCTL0_L = RTCTEVIE | RTCRDYIE | RTCAIE; // enable RTC read ready interrupt
+                                              // enable RTC time event interrupt
+
+    RTCCTL1 = RTCBCD | RTCHOLD | RTCMODE; // RTC enable, BCD mode, RTC hold
+
+    RTCYEAR = 0x2021; // Year = 0x2021
+    RTCMON = 0x4;     // Month = 0x04 = April
+    RTCDAY = 0x21;    // Day = 0x13 = 13
+    RTCDOW = 0x03;    // Day of week = 0x02 = tuesday
+    RTCHOUR = 0x08;   // Hour = 0x10
+    RTCMIN = 0x56;    // Minute = 0x00
+    RTCSEC = 0x00;    // Seconds = 0x00
+
+    RTCCTL1 &= ~(RTCHOLD); // Start RTC
 
     // *** I2C SETUP ***
     // NOTE: eUSCI1_B is used
@@ -104,9 +122,9 @@ void init_disp_mech(void)
     TB0CCR0 = 20000 - 1;                             // 1000000/50Hz=20000 for 50Hz PWM period - make TB0CCR0 different from 0 to start the timer
 
     // Timer for stage sequence, 1s period
-    TA0CTL = TACLR | TASSEL__SMCLK | MC__UP | ID__8;
-    TA0EX0 = TAIDEX_4; // Divider is 8x5, producing 25000Hz from the 1MHz clock
-    TA0CCR0 = 38000;   // Count for 1.5s interval
+    TA3CTL = TACLR | TASSEL__SMCLK | MC__UP | ID__8;
+    TA3EX0 = TAIDEX_4; // Divider is 8x5, producing 25000Hz from the 1MHz clock
+    TA3CCR0 = 38000;   // Count for 1.5s interval
 
     // Timer for stepper
     TA1CCTL0 &= ~CAP;                                 //compare mode
@@ -159,8 +177,8 @@ void init_unused(void)
 
     // Pins
     P1DIR |= ~BUZZER;
-    P2DIR |= ~(UP_BUTTON | DOWN_BUTTON | ENTER_BUTTON | BACK_BUTTON | LIN_SERVO | CONT_SERVO | IR);
-    P3DIR |= ~(DR_0 | DR_1 | DR_2 | DR_3);
+    P2DIR |= ~(UP | DOWN | ENTER | BACK | LIN_SERVO | CONT_SERVO | IR);
+    // P3DIR |= ~(DR_0 | DR_1 | DR_2 | DR_3);
     P4DIR |= ~(SDA | SCL | TX | RX);
     P5DIR |= 0xFF;
     P6DIR |= 0xFF;

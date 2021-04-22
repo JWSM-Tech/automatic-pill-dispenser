@@ -27,24 +27,16 @@
 #define BUZZER BIT6 // Buzzer pin
 
 // Port 2
-#define UP_BUTTON BIT1
-#define DOWN_BUTTON BIT2
-#define ENTER_BUTTON BIT3
-#define BACK_BUTTON BIT4
-
-#define SLAVE_ADDR 0x27 // LCD I2C slave address
+#define UP BIT1
+#define DOWN BIT2
+#define ENTER BIT3
+#define BACK BIT4
 
 // *** Dispensing Mechanism ***
 
 // Port 2
 #define LIN_SERVO BIT6
 #define CONT_SERVO BIT7
-
-// Stepper driver control lines -> Port 3
-#define DR_0 BIT0
-#define DR_1 BIT1
-#define DR_2 BIT2
-#define DR_3 BIT3
 
 // Port 2
 #define IR BIT0
