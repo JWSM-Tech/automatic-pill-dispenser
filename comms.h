@@ -9,10 +9,7 @@
 #define COMMS_H_
 #pragma once
 
-#include <stdlib.h>
-#include <string.h>
 #include <stdbool.h>
-#include <stdio.h>
 
 // Defines
 

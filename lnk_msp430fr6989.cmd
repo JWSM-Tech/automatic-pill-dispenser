@@ -57,11 +57,12 @@ MEMORY
     PERIPHERALS_8BIT        : origin = 0x0020, length = 0x00E0
     PERIPHERALS_16BIT       : origin = 0x0100, length = 0x0100
     RAM                     : origin = 0x1C00, length = 0x0800
+    RAM2                    : origin = 0x4400, length = 0x1400
     INFOA                   : origin = 0x1980, length = 0x0080
     INFOB                   : origin = 0x1900, length = 0x0080
     INFOC                   : origin = 0x1880, length = 0x0080
     INFOD                   : origin = 0x1800, length = 0x0080
-    FRAM                    : origin = 0x4400, length = 0xBB80
+    FRAM                    : origin = 0x5800, length = 0xA780
     FRAM2                   : origin = 0x10000,length = 0x13FF8 /* Boundaries changed to fix CPU47 */
     JTAGSIGNATURE           : origin = 0xFF80, length = 0x0004, fill = 0xFFFF
     BSLSIGNATURE            : origin = 0xFF84, length = 0x0004, fill = 0xFFFF
@@ -134,7 +135,7 @@ SECTIONS
     {
         GROUP(READ_WRITE_MEMORY)
         {
-           .TI.persistent : {}              /* For #pragma persistent            */
+           .TI.persistent : {} 				/* For #pragma persistent            */
            .cio           : {}              /* C I/O Buffer                      */
            .sysmem        : {}              /* Dynamic memory allocation area    */
         } PALIGN(0x0400), RUN_START(fram_rw_start)
@@ -186,8 +187,8 @@ SECTIONS
         .jtagpassword  : {}                 /* JTAG Password                     */
     } > IPESIGNATURE
 
-    .bss        : {} > RAM                  /* Global & static vars              */
-    .data       : {} > RAM                  /* Global & static vars              */
+    .bss        : {} > RAM | RAM2                  /* Global & static vars              */
+    .data       : {} > RAM | RAM2                  /* Global & static vars              */
     .TI.noinit  : {} > RAM                  /* For #pragma noinit                */
     .stack      : {} > RAM (HIGH)           /* Software system stack             */
     .tinyram    : {} > TINYRAM              /* Tiny RAM                          */

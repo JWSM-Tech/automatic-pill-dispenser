@@ -68,13 +68,13 @@ void add_alarm()
 {
     //check schedule to see in what position to add the new alarm
     //struct alarm newAlarm;
-    schedule.hour = temp_hour;
-    schedule.minute = temp_minute;
+    schedule[0].hour = temp_hour;
+    schedule[0].minute = temp_minute;
     int i;
     for (i = 0; i < 8; i++)
     {
-        strcpy(schedule.pill_names[i], temp_pill_names[i]);
-        schedule.quantities[i] = temp_quantities[i];
+        strcpy(schedule[0].pill_names[i], temp_pill_names[i]);
+        schedule[0].quantities[i] = temp_quantities[i];
     }
 }
 
