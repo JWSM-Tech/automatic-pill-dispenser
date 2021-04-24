@@ -29,8 +29,8 @@ int main(void)
 
     display_init();
     on();
-
     _bis_SR_register(GIE);
+  
     while (1)
     {
         if (finished_rx)
