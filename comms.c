@@ -34,7 +34,6 @@ __interrupt void USCI_A0_ISR(void)
         {
             finished_rx = false;
             RX_data[buffer_index++] = UCA0RXBUF;
-            new_line_count = 0;
         }
         else
         {
@@ -78,33 +77,37 @@ void add_alarm()
     }
 }
 
-void check_params(char *RX_data){
+void check_params(char *RX_data)
+{
 
-    if(strstr(RX_data,hour_field) != NULL){ //Hour is in the string
-        temp_string = strstr(RX_data,hour_field);
+    if (strstr(RX_data, hour_field) != NULL)
+    { //Hour is in the string
+        temp_string = strstr(RX_data, hour_field);
         char hour_idx = 0;
         array_ptr = strchr(temp_string, ':') + 1;
 
         stop_array_ptr = strchr(array_ptr, ' ');
 
-        if(stop_array_ptr == NULL){
+        if (stop_array_ptr == NULL)
+        {
             error = true;
         }
         temp_hour = 0;
 
-        while(array_ptr[0] != stop_array_ptr[0]){
-             if(hour_idx*16)
+        while (array_ptr[0] != stop_array_ptr[0])
+        {
+            if (hour_idx * 16)
                 temp_hour += array_ptr[0] - '0';
-             else
-                temp_hour += (array_ptr[0] - '0')*16; //sends hour in Hex BCD
-             array_ptr++;
-             hour_idx++;
+            else
+                temp_hour += (array_ptr[0] - '0') * 16; //sends hour in Hex BCD
+            array_ptr++;
+            hour_idx++;
         }
-
     }
 
-    if((strstr(RX_data,minute_field)) != NULL){ //Minute
-        temp_string = strstr(RX_data,minute_field);
+    if ((strstr(RX_data, minute_field)) != NULL)
+    { //Minute
+        temp_string = strstr(RX_data, minute_field);
 
         char minute_idx = 0;
 
@@ -112,74 +115,87 @@ void check_params(char *RX_data){
 
         stop_array_ptr = strchr(array_ptr, ' ');
 
-        if(stop_array_ptr == NULL){
+        if (stop_array_ptr == NULL)
+        {
             error = true;
         }
 
         temp_minute = 0;
 
-        while(array_ptr[0] != stop_array_ptr[0]){
-             if(minute_idx*16)
-                 temp_minute += array_ptr[0] - '0';
-             else
-                 temp_minute += (array_ptr[0] - '0')*16; //sends minute in Hex BCD
-             array_ptr++;
-             minute_idx++;
+        while (array_ptr[0] != stop_array_ptr[0])
+        {
+            if (minute_idx * 16)
+                temp_minute += array_ptr[0] - '0';
+            else
+                temp_minute += (array_ptr[0] - '0') * 16; //sends minute in Hex BCD
+            array_ptr++;
+            minute_idx++;
         }
     }
 
-    if((strstr(RX_data,pillNames_field)) != NULL){ //pillNames is in the string
-        temp_string = strstr(RX_data,pillNames_field);
+    if ((strstr(RX_data, pillNames_field)) != NULL)
+    { //pillNames is in the string
+        temp_string = strstr(RX_data, pillNames_field);
         char string_idx = 0;
         char char_idx = 0;
         array_ptr = strchr(temp_string, '[') + 1;
         stop_array_ptr = strchr(temp_string, ']');
 
-        if(stop_array_ptr == NULL){
+        if (stop_array_ptr == NULL)
+        {
             error = true;
         }
 
-        while(array_ptr[0] != stop_array_ptr[0]){
-            if(array_ptr[0] == ','){
+        while (array_ptr[0] != stop_array_ptr[0])
+        {
+            if (array_ptr[0] == ',')
+            {
                 temp_pill_names[string_idx++][char_idx] = '\0';
                 char_idx = 0;
                 array_ptr++;
             }
-            else{
-                 temp_pill_names[string_idx][char_idx++] = array_ptr[0];
-                 array_ptr++;
+            else
+            {
+                temp_pill_names[string_idx][char_idx++] = array_ptr[0];
+                array_ptr++;
             }
         }
         temp_pill_names[string_idx][char_idx] = '\0';
     }
 
-
-    if((strstr(RX_data,pillQuantities_field)) != NULL){ //pillQuantities is in the string
+    if ((strstr(RX_data, pillQuantities_field)) != NULL)
+    { //pillQuantities is in the string
         temp_string = strstr(RX_data, pillQuantities_field);
         char char_idx = 0;
         array_ptr = strchr(temp_string, '[') + 1;
         stop_array_ptr = strchr(temp_string, ']');
 
-        if(stop_array_ptr == NULL){
+        if (stop_array_ptr == NULL)
+        {
             error = true;
         }
 
-        while(array_ptr[0] != stop_array_ptr[0]){
-            if(array_ptr[0] == ','){
+        while (array_ptr[0] != stop_array_ptr[0])
+        {
+            if (array_ptr[0] == ',')
+            {
                 char_idx++;
                 array_ptr++;
             }
-            else{
+            else
+            {
                 end_ptr = strchr(array_ptr, ',');
-                 if(end_ptr != NULL){
-                     temp_quantities[char_idx] = strtol(array_ptr, &end_ptr, 10);
-                     array_ptr = strchr(array_ptr, ',');
+                if (end_ptr != NULL)
+                {
+                    temp_quantities[char_idx] = strtol(array_ptr, &end_ptr, 10);
+                    array_ptr = strchr(array_ptr, ',');
                 }
-                 else{
-                     end_ptr = stop_array_ptr;
-                     temp_quantities[char_idx] = strtol(array_ptr, &end_ptr, 10);
-                     array_ptr = strchr(array_ptr, ']');
-                 }
+                else
+                {
+                    end_ptr = stop_array_ptr;
+                    temp_quantities[char_idx] = strtol(array_ptr, &end_ptr, 10);
+                    array_ptr = strchr(array_ptr, ']');
+                }
             }
         }
     }
