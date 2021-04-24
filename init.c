@@ -164,11 +164,22 @@ void init_comms(void)
 
     //  *** ADC Setup ***
 
+    P8DIR &= FSR;
+
     // Pin
     P8SEL1 |= FSR;
     P8SEL0 |= FSR;
 
-    // TODO: Configure ADC
+
+    ADC12CTL0 |= ADC12SHT0_2 | ADC12ON;  // 16 clock cycles for sample and hold, ADC12 on
+    ADC12CTL1 |= ADC12SHP;
+    ADC12CTL2 |= ADC12RES__12BIT;
+
+    ADC12IER0 |= ADC12IE0;
+
+    ADC12MCTL0 |= ADC12INCH_7 | ADC12VRSEL_3; //using A7 analog pin
+
+    ADC12CTL0 |= ADC12ENC | ADC12SC; //Enable and start conversion
 }
 
 void init_unused(void)

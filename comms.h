@@ -26,6 +26,11 @@
 void check_params(char *RX_data);
 void add_alarm();
 void empty_buffer(unsigned char *RX_data, int buffer_index);
+void send_uart(char param);
+char* build_refill_pills();
+char* build_network_data();
+char* build_analytics();
+char getOldestAlarm();
 
 // Shared global variables
 extern bool finished_rx;
