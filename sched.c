@@ -6,9 +6,10 @@
 unsigned char alarms_count = 0;
 unsigned char alarms_index = 0;
 unsigned char menu_index = 0;
+char button;
 
 #pragma PERSISTENT(menu)
-const char *menu[] = {"1.Set Alarm", "2.Set Time", "3.View Alarms", "4. Edit Alarms", "5.Settings"};
+const char *menu[] = {"1.Set Alarm", "2.Set Time", "3.View Alarms", "4.Add Pill", "5.Settings"};
 
 #pragma PERSISTENT(name)
 const char *name[] = {"A", "B", "C", "D", "E", "F", "G", "H"};
@@ -27,6 +28,15 @@ const unsigned char minute[] = {0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 
 
 unsigned char hour_index = 0;
 unsigned char minute_index = 0;
+unsigned char day_index = 0;
+unsigned char month_index = 0;
+unsigned char year_index = 0;
+
+unsigned char day_input = 0;
+unsigned char month_input = 0;
+unsigned char year_input = 0;
+unsigned char hour_input = 0;
+unsigned char minute_input = 0;
 
 bool main_menu = true;
 bool set_time = false;
@@ -37,6 +47,10 @@ bool buzzer_on = false;
 bool view_alarms = false;
 bool set_name = false;
 bool set_quantities = false;
+bool load_pill = false;
+bool day_select = false;
+bool month_select = false;
+bool year_select = false;
 
 // ISRs
 #pragma vector = PORT2_VECTOR
@@ -51,275 +65,59 @@ __interrupt void port2_handler(void)
         break;
 
     case 6: //DOWN
-        __delay_cycles(250000);
-        if (main_menu)
-        {
-            clear_display();
-            set_cursor(0, 3);
-            send_string("Dispenser", 0);
-            menu_index = (menu_index + 1) % 5;
-            set_cursor(1, 1);
-            send_string(menu[menu_index], 1);
-        }
-        //        if(set_time){
-        //            if(enter_count == 1){ // cursor in minutes
-        //               minute_index = (minute_index - 1 + 60) % 60;
-        //               display_time(hour_index,minute_index);
-        //           }
-        //            if(enter_count == 0){ // cursor in hour
-        //                hour_index = (hour_index - 1 + 13) % 13;
-        //                display_time(hour_index,0);
-        //
-        //            }
-        //        }
-
-        if (set_alarm)
-        {
-
-            if (minute_select)
-            { // cursor in minutes
-                minute_index = (minute_index - 1 + 60) % 60;
-                display_time(hour_index, minute_index);
-            }
-
-            if (hour_select)
-            { // cursor in hour
-                hour_index = (hour_index - 1 + 25) % 25;
-                display_time(hour_index, minute_index);
-            }
-
-            if (set_name)
-            {
-                name_index = (name_index - 1 + 8) % 8;
-                display_set_name(name_index);
-            }
-
-            if (set_quantities)
-            {
-                quantities_index = (quantities_index - 1 + 25) % 25;
-                display_quantity(quantities_index);
-            }
-        }
-
-        if (view_alarms)
-        {
-            alarms_index = (alarms_index + 1) % alarms_count;
-            display_view_alarms(alarms_index);
-        }
+        button = 1;
+        TA0CCR0 = TA0R + 50000;
+        TA0CCTL0 |= CCIE;
         break;
     case 8: //ENTER
-        __delay_cycles(250000);
-        if (buzzer_on)
-        { // STOP BUZZER ---- TRY P1.6 AS GPIO AND CLEARING PIN
-            P1SEL0 &= ~BIT6;
-            P1SEL1 &= ~BIT6;
-            P1DIR |= BIT6;
-            P1OUT &= ~BIT6;
-            buzzer_on = false;
-            break;
-        }
-
-        if (set_alarm)
-        {
-
-            if (hour_select)
-            {
-                set_cursor(0, 0);
-                schedule[alarms_count].hour = hour[hour_index];
-                hour_select = false;
-                minute_select = true;
-                set_cursor(0, 3);
-                break;
-            }
-            if (minute_select)
-            {                                                         // cursor in hours
-                schedule[alarms_count].minute = minute[minute_index]; // user hour input
-                minute_select = false;
-                hour_index = 0;
-                minute_index = 0;
-                on();
-                main_menu = true;
-                set_alarm = false;
-                set_time = false;
-                alarms_count++;
-                break;
-            }
-
-            if (set_name)
-            {
-                strcpy(schedule[alarms_count].pill_names[alarms_count], name[name_index]);
-                set_name = false;
-                set_quantities = true;
-                name_index = 0;
-                display_quantity(0);
-                break;
-            }
-
-            if (set_quantities)
-            {
-                schedule[alarms_count].quantities[alarms_count] = hour[quantities_index];
-                quantities_index = 0;
-                set_quantities = false;
-                hour_select = true;
-                display_time(0, 0);
-            }
-        }
-
-        //        if(view_alarms){
-        //
-        //        }
-
-        //        if(set_time){
-        //
-        //            if(enter_count == 1){
-        //               set_cursor(0,3);
-        //               minute_input = minute[minute_index];
-        //               enter_count = 0;
-        //               set_time = 0;
-        //               main_menu = 1;
-        //               on1();
-        //               break;
-        //           }
-        //           if(enter_count == 0){ // cursor in hours
-        //               hour_input = hour[hour_index]; // user hour input
-        //               enter_count++;
-        //               set_cursor(0,3);
-        //           }
-        //
-        //       }
-
-        if (main_menu)
-        {
-            // enter_count = 0;
-            if (menu_index == 0)
-            { // set alarm menu
-                main_menu = false;
-                set_time = false;
-                set_alarm = true;
-                set_name = true;
-                display_set_name(0);
-                //hour_select = true;
-                //display_set_name
-                //display_time(0,0);
-            }
-            //            if(menu_index == 1){
-            //               main_menu = false;
-            //               set_alarm = false;
-            //               //set_time = true;
-            //               hour_select = true;
-            //               //display_time(0,0);
-            //               //set_cursor(0,0);
-            //            }
-
-            if (menu_index == 2)
-            {
-                main_menu = false;
-                set_alarm = false;
-                set_time = false;
-                view_alarms = true;
-                if (alarms_count == 0)
-                {
-                    display_view_alarms_info();
-                    break;
-                }
-
-                display_view_alarms(alarms_index);
-            }
-        }
+        button = 2;
+        TA0CCR0 = TA0R + 50000;
+        TA0CCTL0 |= CCIE;
 
         break;
     case 4: // UP
-        __delay_cycles(250000);
-        if (main_menu)
-        {
-            clear_display();
-            set_cursor(0, 3);
-            send_string("Dispenser", 0);
-            menu_index = (menu_index - 1 + 5) % 5;
-            set_cursor(1, 1);
-            send_string(menu[menu_index], 1);
-        }
-        //        if(set_time){
-        //
-        //            if(minute_select){ // cursor in minutes
-        //               minute_index = (minute_index + 1) % 60;
-        //               display_time(hour_index, minute_index);
-        //           }
-        //           if(hour_select){ // cursor in hour
-        //               hour_index = (hour_index + 1) % 25;
-        //               display_time(hour_index,0);
-        //           }
-        //
-        //       }
-
-        if (set_alarm)
-        {
-
-            if (minute_select)
-            { // cursor in minutes
-                minute_index = (minute_index + 1 + 60) % 60;
-                display_time(hour_index, minute_index);
-            }
-
-            if (hour_select)
-            { // cursor in hour
-                hour_index = (hour_index + 1 + 25) % 25;
-                display_time(hour_index, 0);
-            }
-
-            if (set_name)
-            {
-                name_index = (name_index + 1 + 8) % 8;
-                display_set_name(name_index);
-            }
-
-            if (set_quantities)
-            {
-                quantities_index = (quantities_index + 1 + 25) % 25;
-                display_quantity(quantities_index);
-            }
-        }
-        if (view_alarms)
-        {
-            alarms_index = (alarms_index - 1 + alarms_count) % alarms_count;
-            display_view_alarms(alarms_index);
-        }
-
+        button = 0;
+        TA0CCR0 = TA0R + 50000;
+        TA0CCTL0 |= CCIE;
         break;
 
     case 10: // BACK
-        __delay_cycles(250000);
-        if (set_alarm)
-        {
-            if (hour_select)
-            {
-                hour_select = false;
-                set_alarm = false;
-                main_menu = true;
-
-                menu_index = 0;
-                on();
-            }
-
-            if (minute_select)
-            {
-
-                minute_select = false;
-                hour_select = true;
-                set_cursor(0, 0);
-                schedule[alarms_index].hour = 0x00;
-            }
-        }
-
-        if (view_alarms)
-        {
-            view_alarms = false;
-            main_menu = true;
-            menu_index = 0;
-            on();
-        }
+        button = 3;
+        TA0CCR0 = TA0R + 50000;
+        TA0CCTL0 |= CCIE;
         break;
     }
+}
+
+#pragma vector = TIMER0_A0_VECTOR
+__interrupt void TimerA0_ISR(void)
+{
+    TA0CCTL0 &= ~CCIE;
+
+    switch(button){
+    case 0:
+        up_button();
+        break;
+
+    case 1:
+        down_button();
+        break;
+
+    case 2:
+        enter_button();
+        break;
+
+    case 3:
+        back_button();
+        break;
+    }
+
+}
+#pragma vector = TIMER0_A1_VECTOR
+__interrupt void TimerA1_ISR(void)
+{
+    TA0CCR1 += 500;
+
 }
 
 #pragma vector = RTC_VECTOR
@@ -368,20 +166,30 @@ __interrupt void RTC_ISR(void)
 void buzzer()
 {
     buzzer_on = true;
-    P1DIR |= BIT6;
-    P1SEL1 |= BIT6;
-    P1SEL0 |= BIT6;
-    TA0CCR0 = 1000 - 1;
-    TA0CCR1 = 999;
+//    P1DIR |= BIT6;
+//    P1SEL1 |= BIT6;
+//    P1SEL0 |= BIT6;
+    TA0CCTL1 = OUTMOD_4 | CCIE;
+    TA0CCR1 = 500;
 }
 
-void on()
+void buzzer_off(){
+//   P1SEL0 &= ~BIT6;
+//   P1SEL1 &= ~BIT6;
+//   P1DIR |= BIT6;
+    TA0CCTL1 = 0;
+   buzzer_on = false;
+}
+
+void on(unsigned char index)
 {
     clear_display();
     set_cursor(0, 3);
     send_string("Dispenser", 0);
     set_cursor(1, 1);
-    send_string(menu[0], 1);
+    send_string(menu[index], 1);
+
+
 }
 
 void BCD2ASC(unsigned char src, char *dest)
@@ -456,3 +264,392 @@ void display_view_alarms(unsigned char index)
     BCD2ASC(schedule[index].minute, buffer);
     send_string(buffer, 0);
 }
+
+void display_calendar(unsigned char day, unsigned char month, unsigned char year){
+    clear_display();
+    set_cursor(0,0);
+    send_string("dd/mm/yyyy",0);
+    set_cursor(1,0);
+    char *buffer[10];
+    BCD2ASC(minute[day], buffer);
+    send_string(buffer,0);
+    send_string("/",0);
+    BCD2ASC(minute[month],buffer);
+    send_string(buffer,0);
+    send_string("/",0);
+    send_string("20",0);
+    BCD2ASC(minute[year],buffer);
+    send_string(buffer,0);
+}
+
+void set_rtc_time(unsigned char day, unsigned char month, unsigned char year, unsigned char hour, unsigned char minute){
+
+       RTCCTL0_H = RTCKEY_H;                     // Unlock RTC
+//       RTCCTL0_L = RTCTEVIE | RTCRDYIE | RTCAIE; // enable RTC read ready interrupt
+                                                 // enable RTC time event interrupt
+
+       RTCCTL1 = RTCBCD | RTCHOLD | RTCMODE; // RTC enable, BCD mode, RTC hold
+
+       RTCYEAR = year; // Year = 0x2021
+       RTCMON = month;     // Month = 0x04 = April
+       RTCDAY = day;    // Day = 0x13 = 13
+       RTCDOW = 0x03;    // Day of week = 0x02 = tuesday
+       RTCHOUR = hour;   // Hour = 0x10
+       RTCMIN = minute;    // Minute = 0x00
+       RTCSEC = 0x00;    // Seconds = 0x00
+
+       RTCCTL1 &= ~(RTCHOLD); // Start RTC
+}
+
+void enter_button(){
+    if (buzzer_on)
+           { // STOP BUZZER ---- TRY P1.6 AS GPIO AND CLEARING PIN
+             buzzer_off();
+           }
+    if (main_menu)
+  {
+
+      if (menu_index == 0)
+      { // set alarm menu
+          main_menu = false;
+          set_time = false;
+          set_alarm = true;
+          set_name = true;
+          display_set_name(0);
+          //hour_select = true;
+          //display_set_name
+          //display_time(0,0);
+      }
+
+      else if(menu_index == 1){
+          //SET TIME MENU
+
+         main_menu = false;
+         set_alarm = false;
+         set_time = true;
+         day_select = true;
+         display_calendar(day_index, month_index, year_index);
+      }
+
+      else if (menu_index == 2)
+      {
+          //VIEW ALARMS MENU
+
+          main_menu = false;
+          set_alarm = false;
+          set_time = false;
+          view_alarms = true;
+          if (alarms_count == 0)
+          {
+              display_view_alarms_info();
+          }
+          else
+              display_view_alarms(alarms_index);
+      }
+  }
+
+   if (set_alarm)
+   {
+
+        if (minute_select)
+       {                                                         // cursor in hours
+           schedule[alarms_count].minute = minute[minute_index]; // user hour input
+           minute_select = false;
+           hour_index = 0;
+           //minute_index = 0;
+           on(menu_index);
+           main_menu = true;
+           set_alarm = false;
+           set_time = false;
+           alarms_count++;
+           //break;
+       }
+        else if (hour_select)
+       {
+           set_cursor(0, 0);
+           schedule[alarms_count].hour = hour[hour_index];
+           hour_select = false;
+           minute_select = true;
+           set_cursor(0, 3);
+           //break;
+       }
+
+
+       else if (set_quantities)
+       {
+           schedule[alarms_count].quantities[alarms_count] = hour[quantities_index];
+           quantities_index = 0;
+           set_quantities = false;
+           hour_select = true;
+           display_time(0, 0);
+       }
+       else if (set_name)
+       {
+           strcpy(schedule[alarms_count].pill_names[alarms_count], name[name_index]);
+           set_name = false;
+           set_quantities = true;
+           name_index = 0;
+           display_quantity(0);
+           //break;
+       }
+
+
+   }
+
+   //        if(view_alarms){
+   //
+   //        }
+
+   if(set_time){
+
+           if(year_select){
+               year_select = false;
+               hour_select = true;
+               year_input = minute[year_index];
+               display_time(0,0);
+               //break;
+           }
+           else if(month_select){ // cursor in hours
+              set_cursor(0,6);
+              month_select = false;
+              year_select = true;
+              month_input = minute[month_index]; //using minute array for memory conservation
+              //break;
+          }
+           else if(day_select){
+              set_cursor(0,3);
+              day_select = false;
+              month_select = true;
+              day_input = minute[day_index];
+             // break;
+          }
+
+            if (minute_select){
+
+              minute_input = minute[minute_index];
+               minute_select = false;
+               hour_index = 0;
+               minute_index = 0;
+               on(menu_index);
+               main_menu = true;
+               set_alarm = false;
+               set_time = false;
+               set_rtc_time(day_input, month_input, year_input, hour_input, minute_input);
+              // break;
+           }
+            if (hour_select){
+               //set_cursor(0, 0);
+               hour_input = hour[hour_index];
+               hour_select = false;
+               minute_select = true;
+               set_cursor(0, 3);
+               //break;
+           }
+
+      }
+
+
+}
+
+void back_button(){
+    if (set_alarm)
+        {
+            if (hour_select)
+            {
+                hour_select = false;
+                set_alarm = false;
+                main_menu = true;
+                 //menu_index = 0;
+                on(menu_index);
+            }
+
+            else if (minute_select)
+            {
+                minute_select = false;
+                hour_select = true;
+                set_cursor(0, 0);
+               // schedule[alarms_index].hour = 0x00;
+            }
+
+        }
+    if(set_time){
+        if(hour_select){
+            hour_select = false;
+            day_select = true;
+            set_cursor(1,0);
+            display_calendar(day_index, month_index, year_index);
+        }
+        if(minute_select){
+            minute_select = false;
+            hour_select = true;
+            set_cursor(1,0);
+        }
+        if(day_select){
+            day_select = false;
+            set_time = false;
+            main_menu = true;
+            on(menu_index);
+        }
+
+        if(month_select){
+            month_select = false;
+            day_select = true;
+            set_cursor(1,0);
+        }
+        if(year_select){
+            year_select = false;
+            month_select = true;
+            set_cursor(1,3);
+        }
+    }
+
+       if (view_alarms)
+        {
+            view_alarms = false;
+            main_menu = true;
+            //menu_index = 0;
+            on(menu_index);
+        }
+}
+
+void up_button(){
+
+    if (main_menu)
+    {
+       menu_index = (menu_index - 1 + 5) % 5;
+       on(menu_index);
+    }
+
+    if(set_time)
+    {
+
+       if(day_select){ // cursor in minutes
+          day_index = (day_index + 1 + 31) % 31;
+          display_calendar(day_index, month_index, year_index);
+      }
+
+       else if(month_select){ // cursor in hour
+           month_index = (month_index + 1 + 12) % 12;
+           display_calendar(day_index, month_index, year_index);
+
+       }
+       else if(year_select){
+           year_index = (year_index + 1 + 60) % 60;
+           display_calendar(day_index, month_index, year_index);
+       }
+
+       else if(hour_select){
+          hour_index = (hour_index + 1 + 24) % 24;
+          display_time(hour_index, minute_index);
+      }
+       else if(minute_select){
+          minute_index = (minute_index + 1 + 60) % 60;
+          display_time(hour_index, minute_index);
+       }
+
+    }
+
+    if (set_alarm)
+   {
+
+       if (minute_select)
+       { // cursor in minutes
+           minute_index = (minute_index + 1 + 60) % 60;
+           display_time(hour_index, minute_index);
+       }
+
+       else if (hour_select)
+       { // cursor in hour
+           hour_index = (hour_index + 1 + 25) % 25;
+           display_time(hour_index, 0);
+       }
+
+       else if (set_name)
+       {
+           name_index = (name_index + 1 + 8) % 8;
+           display_set_name(name_index);
+       }
+
+       else if (set_quantities)
+       {
+           quantities_index = (quantities_index + 1 + 25) % 25;
+           display_quantity(quantities_index);
+       }
+   }
+
+    if (view_alarms)
+   {
+       alarms_index = (alarms_index - 1 + alarms_count) % alarms_count;
+       display_view_alarms(alarms_index);
+   }
+
+}
+
+void down_button(){
+    if (main_menu)
+    {
+        menu_index = (menu_index + 1) % 5;
+        on(menu_index);
+    }
+
+     if(set_time){
+
+        if(day_select){ // cursor in minutes
+           day_index = (day_index - 1 + 31) % 31;
+           display_calendar(day_index, month_index, year_index);
+       }
+
+        else if(month_select){ // cursor in hour
+            month_index = (month_index - 1 + 12) % 12;
+            display_calendar(day_index, month_index, year_index);
+
+        }
+        else if(year_select){
+            year_index = (year_index - 1 + 60) % 60;
+            display_calendar(day_index, month_index, year_index);
+        }
+        else if(hour_select){
+            hour_index = (hour_index - 1 + 24) % 24;
+            display_time(hour_index, minute_index);
+        }
+        else if(minute_select){
+            minute_index = (minute_index - 1 + 60) % 60;
+            display_time(hour_index, minute_index);
+        }
+    }
+
+    if (set_alarm)
+    {
+
+        if (minute_select)
+        { // cursor in minutes
+            minute_index = (minute_index - 1 + 60) % 60;
+            display_time(hour_index, minute_index);
+        }
+
+        else if (hour_select)
+        { // cursor in hour
+            hour_index = (hour_index - 1 + 25) % 25;
+            display_time(hour_index, minute_index);
+        }
+
+        else if (set_name)
+        {
+            name_index = (name_index - 1 + 8) % 8;
+            display_set_name(name_index);
+        }
+
+        else if (set_quantities)
+        {
+            quantities_index = (quantities_index - 1 + 25) % 25;
+            display_quantity(quantities_index);
+        }
+    }
+
+     if (view_alarms)
+    {
+        alarms_index = (alarms_index + 1) % alarms_count;
+        display_view_alarms(alarms_index);
+    }
+}
+

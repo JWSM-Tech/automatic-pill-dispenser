@@ -44,10 +44,9 @@ void init_sched_syst(void)
     // Could also use RTC
     // Use CCR1
 
-    TA0CCTL1 = OUTMOD_7; // Reset/set output mode
-    TA0CTL = (TACLR | TASSEL__SMCLK | ID__1 | MC__UP);
-    TA0CCR0 = 0;
-    TA0CCR1 = 500;
+    //TA0CCTL1 = OUTMOD_4; // toggle
+    TA0CTL = (TACLR | TASSEL__SMCLK | ID__1 | MC__CONTINUOUS);
+    TA0CCR1 = 0;
 
     //*** RTC SETUP ***
     // *** BUTTONS SETUP ***

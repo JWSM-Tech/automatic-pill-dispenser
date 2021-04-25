@@ -24,6 +24,9 @@ struct alarm
     char pill_names[8][15];
 };
 
+//int pill_quantities[8];
+//char pill_names[8][15];
 struct alarm schedule[8];
+
 
 #endif /* MAIN_H_ */
