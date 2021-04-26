@@ -126,7 +126,7 @@ void init_disp_mech(void)
 
     // Timer for stepper
     TA1CCTL0 &= ~CAP;                                 //compare mode
-    TA1CCR0 = 1250;                                   //10ms delay for stepper steps: 125000/1000=125 -> 125*10ms=1250
+    TA1CCR0 = 2500;                                   //20ms delay for stepper steps: 125000/1000=125 -> 125*20ms=2500
     TA1CTL |= TASSEL__SMCLK + MC__UP + ID__8 + TACLR; //SMCLK, /8: 1000000/8 = 125000Hz
 
     // Timer for dispenser servo, 2s period
