@@ -3,13 +3,15 @@
 
 bool finished_rx = false;
 char RX_data[buf_size];
-int new_line_count = 0;
 
 char TXSendBuffer[buf_size];
 bool error = false;
 
 char *SSID = "";
 char *PASSWORD = "";
+
+char pill_names[8][15]; //TODO: replace with refill pill_names variable
+char quantities[8]; //TODO: replace with refill quantities variable
 
 int buffer_index = 0;
 
@@ -56,7 +58,6 @@ __interrupt void USCI_A0_ISR(void)
         {
             finished_rx = false;
             RX_data[buffer_index++] = UCA0RXBUF;
-            new_line_count = 0;
         }
         else
         {
@@ -86,23 +87,39 @@ void empty_buffer(unsigned char *buffer, int size)
     }
 }
 
-void add_alarm()
-{
-    char oldest = getOldestAlarm(); //check schedule to see in what position to add the new alarm
-
-    schedule[oldest].hour = temp_hour;
-    schedule[oldest].minute = temp_minute;
-    int i;
-    for (i = 0; i < 8; i++)
-    {
-        strcpy(schedule[oldest].pill_names[i], temp_pill_names[i]);
-        schedule[oldest].quantities[i] = temp_quantities[i];
-    }
-}
-
 void check_params(char *RX_data){
 
-    if(strstr(RX_data,hour_field) != NULL){ //Hour is in the string
+
+    int param = 0;
+    
+    temp_string = strstr(RX_data,"param");
+    char hour_idx = 0;
+    array_ptr = strchr(temp_string, ':') + 1;
+
+    param = array_ptr[0] - '0';
+
+    switch(param){
+        case receiveAddReminderParam:
+            receive_add_reminder();
+            break;
+        case receiveRemoveReminderParam:
+            receive_remove_reminder();
+            break;
+        case receiveRefillParam:
+            receive_refill();
+            break;
+        case receiveAddPillParam:
+            receive_add_pill();
+            break;
+        case receiveRemovePillParam:
+            receive_remove_pill();
+            break;
+    }
+
+}
+
+void receive_add_reminder(){
+        if(strstr(RX_data,hour_field) != NULL){ //Hour is in the string
         temp_string = strstr(RX_data,hour_field);
         char hour_idx = 0;
         array_ptr = strchr(temp_string, ':') + 1;
@@ -150,8 +167,8 @@ void check_params(char *RX_data){
         }
     }
 
-    if((strstr(RX_data,pillNames_field)) != NULL){ //pillNames is in the string
-        temp_string = strstr(RX_data,pillNames_field);
+    if((strstr(RX_data, pillNames_field)) != NULL){ //pillNames is in the string
+        temp_string = strstr(RX_data, pillNames_field);
         char string_idx = 0;
         char char_idx = 0;
         array_ptr = strchr(temp_string, '[') + 1;
@@ -205,16 +222,200 @@ void check_params(char *RX_data){
             }
         }
     }
+    add_alarm(temp_hour, temp_minute, temp_quantities);
 }
 
-char getOldestAlarm(){
+void receive_remove_reminder(){
+    if(strstr(RX_data,hour_field) != NULL){ //Hour is in the string
+        temp_string = strstr(RX_data,hour_field);
+        char hour_idx = 0;
+        array_ptr = strchr(temp_string, ':') + 1;
+
+        stop_array_ptr = strchr(array_ptr, ' ');
+
+        if(stop_array_ptr == NULL){
+            error = true;
+        }
+        temp_hour = 0;
+
+        while(array_ptr[0] != stop_array_ptr[0]){
+             if(hour_idx*16)
+                temp_hour += array_ptr[0] - '0';
+             else
+                temp_hour += (array_ptr[0] - '0')*16; //sends hour in Hex BCD
+             array_ptr++;
+             hour_idx++;
+        }
+
+    }
+
+    if((strstr(RX_data,minute_field)) != NULL){ //Minute
+        temp_string = strstr(RX_data,minute_field);
+
+        char minute_idx = 0;
+
+        array_ptr = strchr(temp_string, ':') + 1;
+
+        stop_array_ptr = strchr(array_ptr, ' ');
+
+        if(stop_array_ptr == NULL){
+            error = true;
+        }
+
+        temp_minute = 0;
+
+        while(array_ptr[0] != stop_array_ptr[0]){
+             if(minute_idx*16)
+                 temp_minute += array_ptr[0] - '0';
+             else
+                 temp_minute += (array_ptr[0] - '0')*16; //sends minute in Hex BCD
+             array_ptr++;
+             minute_idx++;
+        }
+    }
+
+    if((strstr(RX_data,pillQuantities_field)) != NULL){ //pillQuantities is in the string
+        temp_string = strstr(RX_data, pillQuantities_field);
+        char char_idx = 0;
+        array_ptr = strchr(temp_string, '[') + 1;
+        stop_array_ptr = strchr(temp_string, ']');
+
+        if(stop_array_ptr == NULL){
+            error = true;
+        }
+
+        while(array_ptr[0] != stop_array_ptr[0]){
+            if(array_ptr[0] == ','){
+                char_idx++;
+                array_ptr++;
+            }
+            else{
+                end_ptr = strchr(array_ptr, ',');
+                 if(end_ptr != NULL){
+                     temp_quantities[char_idx] = strtol(array_ptr, &end_ptr, 10);
+                     array_ptr = strchr(array_ptr, ',');
+                }
+                 else{
+                     end_ptr = stop_array_ptr;
+                     temp_quantities[char_idx] = strtol(array_ptr, &end_ptr, 10);
+                     array_ptr = strchr(array_ptr, ']');
+                 }
+            }
+        }
+    }
+    remove_alarm(temp_hour, temp_minute, temp_quantities);
+}
+
+void receive_refill(){
+    if((strstr(RX_data,pillQuantities_field)) != NULL){ //pillQuantities is in the string
+        temp_string = strstr(RX_data, pillQuantities_field);
+        char char_idx = 0;
+        array_ptr = strchr(temp_string, '[') + 1;
+        stop_array_ptr = strchr(temp_string, ']');
+
+        if(stop_array_ptr == NULL){
+            error = true;
+        }
+
+        while(array_ptr[0] != stop_array_ptr[0]){
+            if(array_ptr[0] == ','){
+                char_idx++;
+                array_ptr++;
+            }
+            else{
+                end_ptr = strchr(array_ptr, ',');
+                 if(end_ptr != NULL){
+                     temp_quantities[char_idx] = strtol(array_ptr, &end_ptr, 10);
+                     array_ptr = strchr(array_ptr, ',');
+                }
+                 else{
+                     end_ptr = stop_array_ptr;
+                     temp_quantities[char_idx] = strtol(array_ptr, &end_ptr, 10);
+                     array_ptr = strchr(array_ptr, ']');
+                 }
+            }
+        }
+    }
+    refill(temp_quantities);
+}
+
+void receive_add_pill(){
+
+    if((strstr(RX_data, "pillName")) != NULL){ //pillNames is in the string
+        temp_string = strstr(RX_data, "pillName");
+        char string_idx = 0;
+        char char_idx = 0;
+        array_ptr = strchr(temp_string, ':') + 1;
+        stop_array_ptr = strchr(temp_string, ' ');
+
+        if(stop_array_ptr == NULL){
+            error = true;
+        }
+
+        while(array_ptr[0] != stop_array_ptr[0]){
+                 temp_pill_names[0][char_idx++] = array_ptr[0];
+                 array_ptr++;
+        }
+        temp_pill_names[0][char_idx] = '\0';
+    }
+
+
+    if((strstr(RX_data,"pillQuantity")) != NULL){ //pillQuantities is in the string
+        temp_string = strstr(RX_data, "pillQuantity");
+        char char_idx = 0;
+        array_ptr = strchr(temp_string, ':') + 1;
+        stop_array_ptr = strchr(temp_string, ' ');
+
+        if(stop_array_ptr == NULL){
+            error = true;
+        }
+
+        temp_quantities[0] = 0;
+        //assume two digits
+        while(array_ptr[0] != stop_array_ptr[0]){
+             if(char_idx*16)
+                temp_hour += array_ptr[0] - '0';
+             else
+                temp_hour += (array_ptr[0] - '0')*10; //sends hour in Hex BCD
+             array_ptr++;
+             char_idx++;
+        }
+    }
+    add_pill(temp_pill_names[0], temp_quantities[0]);
+}
+
+void receive_remove_pill(){
+    if((strstr(RX_data, "pillName")) != NULL){ //pillNames is in the string
+        temp_string = strstr(RX_data, "pillName");
+        char string_idx = 0;
+        char char_idx = 0;
+        array_ptr = strchr(temp_string, ':') + 1;
+        stop_array_ptr = strchr(temp_string, ' ');
+
+        if(stop_array_ptr == NULL){
+            error = true;
+        }
+
+        while(array_ptr[0] != stop_array_ptr[0]){
+                 temp_pill_names[0][char_idx++] = array_ptr[0];
+                 array_ptr++;
+        }
+        temp_pill_names[0][char_idx] = '\0';
+    }
+    remove_pill(temp_pill_names[0]);
+}
+
+__int8_t getOldestAlarm(){
     return 0; //TODO: update to calculate oldest alarm from the lcd_control global vars
 }
 
-char getCurrentAlarm(){
+__int8_t getCurrentAlarm(){
     return 0; //TODO: update to use the current Alarm from the lcd_control global vars
 }
 
+// send UART build ptr
+
+//param:1
 char* build_analytics(){
 
     char currentAlarm = getCurrentAlarm();
@@ -327,6 +528,7 @@ char* build_analytics(){
     return TXSendBuffer;
 }
 
+//param:2
 char* build_network_data(){
 
     strcpy(TXSendBuffer, "param:2 ");
@@ -345,15 +547,13 @@ char* build_network_data(){
     return TXSendBuffer;
 }
 
-char* build_refill_pills(){
+//param:3
+char* build_pills_info(){
 
     strcpy(TXSendBuffer, "param:3 ");
 
     strcat(TXSendBuffer, pillNames_field);
     strcat(TXSendBuffer, ":[");
-
-    char pill_names[8][15]; //TODO: replace with refill pill_names variable
-    char quantities[8]; //TODO: replace with refill quantities variable
 
     int i;
     for(i = 0; i< 8; i++){
@@ -379,20 +579,132 @@ char* build_refill_pills(){
     return TXSendBuffer;
 }
 
-void send_uart(char param){ //this function sends the data from MSP430 temporary variables to the UART port
+//param:4
+char* build_add_reminder_data(unsigned char index){
+
+    strcpy(TXSendBuffer, "param:4 ");
+
+    strcat(TXSendBuffer, "storeIndex:");
+    strcat(TXSendBuffer, ltoa(index, temp_string, 10));
+    strcat(TXSendBuffer, " ");
+
+    strcat(TXSendBuffer, hour_field);
+    strcat(TXSendBuffer, ":");
+    ltoa(schedule[index].hour, temp_string, 16);
+    if(schedule[index].hour < 0x10){
+        temp_string[1] = temp_string[0];
+        temp_string[0] = '0';
+        temp_string[2] = '\0';
+    }
+    strcat(TXSendBuffer, temp_string);
+    strcat(TXSendBuffer, " ");
+
+    strcat(TXSendBuffer, minute_field);
+    strcat(TXSendBuffer, ":");
+    ltoa(schedule[index].minute, temp_string, 16);
+    if(schedule[index].minute < 0x10){
+        temp_string[1] = temp_string[0];
+        temp_string[0] = '0';
+        temp_string[2] = '\0';
+    }
+    strcat(TXSendBuffer, temp_string);
+    strcat(TXSendBuffer, " ");
+
+    strcat(TXSendBuffer, pillQuantities_field);
+    strcat(TXSendBuffer, ":[");
+
+    int i;
+    for(i = 0; i< 8; i++){
+        strcat(TXSendBuffer, ltoa(quantities[i], temp_string, 10));
+
+        if(i < 7)
+            strcat(TXSendBuffer, ",");
+    }
+    strcat(TXSendBuffer, "] ");
+
+    return TXSendBuffer;
+}
+
+//param:5
+char* build_remove_reminder_data(unsigned char index){
+    strcpy(TXSendBuffer, "param:5 ");
+
+    strcat(TXSendBuffer, "storeIndex:");
+    strcat(TXSendBuffer, ltoa(index, temp_string, 10));
+    strcat(TXSendBuffer, " ");
+
+    return TXSendBuffer;
+}
+
+//param:6
+char* build_refill_pills(){
+
+    strcpy(TXSendBuffer, "param:6 ");
+
+
+    strcat(TXSendBuffer, pillQuantities_field);
+    strcat(TXSendBuffer, ":[");
+    int i;
+    for(i = 0; i< 8; i++){
+        strcat(TXSendBuffer, ltoa(quantities[i], temp_string, 10));
+
+        if(i < 7)
+            strcat(TXSendBuffer, ",");
+    }
+    strcat(TXSendBuffer, "] ");
+
+    return TXSendBuffer;
+}
+
+//param:7
+char* build_add_pill_data(char index){
+    strcpy(TXSendBuffer, "param:7 ");
+
+    strcat(TXSendBuffer, "storeIndex:");
+    strcat(TXSendBuffer, ltoa(index, temp_string, 10));
+
+    strcat(TXSendBuffer, "pillName:");
+    strcat(TXSendBuffer, pill_names[index]);
+    strcat(TXSendBuffer, " ");
+
+    
+    strcat(TXSendBuffer, "pillQuantity:");
+    strcat(TXSendBuffer, ltoa(quantities[index], temp_string, 10));
+    strcat(TXSendBuffer, " ");
+
+    return TXSendBuffer;
+}
+
+void send_uart(char param, char index){ //this function sends the data from MSP430 temporary variables to the UART port
     //TODO: add send_uart to timer_isr while checking flags in order to set param accordingly
 
     switch(param){
-        case 1:
+        case sendAnalyticsParam:
             send_ptr = build_analytics();
             break;
-        case 2:
+        case sendNetworkParam:
             send_ptr = build_network_data();
             break;
-        case 3:
+        case sendPillInfoParam:
+            send_ptr = build_pills_info();
+            break;
+        case sendAddReminderParam:
+            send_ptr = build_add_reminder_data(index);
+            break;
+        case sendRemoveReminderParam:
+            send_ptr = build_remove_reminder_data(index);
+            break;
+        case sendRefillParam:
             send_ptr = build_refill_pills();
             break;
-        default: send_ptr = "param:0 ";
+        case sendAddPillParam:
+            send_ptr = build_add_pill_data(index);
+            break;
+        case sendRemovePillParam:
+            send_ptr = build_remove_reminder_data(index);
+            break;
+        
+        default: send_ptr = "";
     }
 
     int length = strlen(send_ptr);
