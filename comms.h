@@ -14,8 +14,6 @@
 // Defines
 
 #define buf_size 250
-#define TEST_PARSE false
-#define MAX_NEW_LINE 3
 #define hour_field "Hour"
 #define minute_field "Minute"
 #define pillNames_field "pillNames"
@@ -24,7 +22,7 @@
 
 // Functions
 void check_params(char *RX_data);
-void add_alarm();
+//void add_alarm();
 void empty_buffer(unsigned char *RX_data, int buffer_index);
 
 // Shared global variables

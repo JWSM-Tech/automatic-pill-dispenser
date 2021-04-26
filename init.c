@@ -39,8 +39,6 @@ void init_sched_syst(void)
 
     // Timer
 
-    // TODO: Initialize compare register CCRs
-    // TODO: Might need another timer or reg to time how long the buzzer is one
     // Could also use RTC
     // Use CCR1
 
@@ -53,8 +51,10 @@ void init_sched_syst(void)
 
     P2DIR &= ~(UP | DOWN | ENTER | BACK);
     P2IFG &= ~(UP | DOWN | ENTER | BACK);
-    P2IES |= UP;
-    P2IES &= ~(DOWN | ENTER | BACK);
+    P2REN |= UP | DOWN | ENTER | BACK;
+    P2OUT |= UP | DOWN | ENTER | BACK;
+    P2IES |= UP | DOWN | ENTER | BACK;
+    //P2IES &= ~(DOWN | ENTER | BACK);
     P2IE |= UP | DOWN | ENTER | BACK;
 
     // Configure RTC_C
@@ -65,13 +65,13 @@ void init_sched_syst(void)
 
     RTCCTL1 = RTCBCD | RTCHOLD | RTCMODE; // RTC enable, BCD mode, RTC hold
 
-    RTCYEAR = 0x2021; // Year = 0x2021
-    RTCMON = 0x4;     // Month = 0x04 = April
-    RTCDAY = 0x21;    // Day = 0x13 = 13
-    RTCDOW = 0x03;    // Day of week = 0x02 = tuesday
-    RTCHOUR = 0x08;   // Hour = 0x10
-    RTCMIN = 0x56;    // Minute = 0x00
-    RTCSEC = 0x00;    // Seconds = 0x00
+    RTCYEAR = 0x00; 
+    RTCMON = 0x00;  
+    RTCDAY = 0x00;  
+    RTCDOW = 0x00;  
+    RTCHOUR = 0x00; 
+    RTCMIN = 0x00; 
+    RTCSEC = 0x00;
 
     RTCCTL1 &= ~(RTCHOLD); // Start RTC
 

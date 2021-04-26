@@ -6,16 +6,23 @@
 unsigned char alarms_count = 0;
 unsigned char alarms_index = 0;
 unsigned char menu_index = 0;
+char pill_count = 0;
+char dummy_quantity = 0;
 char button;
 
 #pragma PERSISTENT(menu)
 const char *menu[] = {"1.Set Alarm", "2.Set Time", "3.View Alarms", "4.Add Pill", "5.Settings"};
 
 #pragma PERSISTENT(name)
-const char *name[] = {"A", "B", "C", "D", "E", "F", "G", "H"};
+//const char *name[] = {"A", "B", "C", "D", "E", "F", "G", "H"};
+const char letter[] = {" abcdefghijklmnopqrstuvwxyz"};
+char name_buffer[10];
 
-unsigned char name_index = 0;
-unsigned char quantities_index = 0;
+unsigned char letter_index = 0;
+unsigned char letter_location_index = 0;
+ char quantities_index = 0;
+unsigned char different_pills_counter = 0;
+unsigned char different_pills_index = 0;
 
 #pragma PERSISTENT(hour)
 const unsigned char hour[] = {0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18, 0x19, 0x20, 0x21, 0x22, 0x23, 0x24};
@@ -26,18 +33,27 @@ const unsigned char minute[] = {0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 
                                 0x38, 0x39, 0x40, 0x41, 0x42, 0x43, 0x44, 0x45, 0x46, 0x47, 0x48, 0x49, 0x50, 0x51, 0x52, 0x53, 0x54, 0x55, 0x56,
                                 0x57, 0x58, 0x59};
 
+// Index Variables for BCD Table Lookup
 unsigned char hour_index = 0;
 unsigned char minute_index = 0;
 unsigned char day_index = 0;
 unsigned char month_index = 0;
 unsigned char year_index = 0;
 
+//Set Time Variables for Set Alarm and Set Time
 unsigned char day_input = 0;
 unsigned char month_input = 0;
 unsigned char year_input = 0;
 unsigned char hour_input = 0;
 unsigned char minute_input = 0;
+int dummy_quantities[8];
 
+int quantities_input = 0;
+
+//Index Variable for Pill List Traversing
+char pill_name_index = 0;
+
+//Boolean Variables for Menu States
 bool main_menu = true;
 bool set_time = false;
 bool set_alarm = false;
@@ -47,10 +63,13 @@ bool buzzer_on = false;
 bool view_alarms = false;
 bool set_name = false;
 bool set_quantities = false;
-bool load_pill = false;
 bool day_select = false;
 bool month_select = false;
 bool year_select = false;
+bool addPill = false;
+bool different_pills_select = false;
+bool pill_list = false;
+
 
 // ISRs
 #pragma vector = PORT2_VECTOR
@@ -66,24 +85,24 @@ __interrupt void port2_handler(void)
 
     case 6: //DOWN
         button = 1;
-        TA0CCR0 = TA0R + 50000;
+        TA0CCR0 = TA0R + 15000;
         TA0CCTL0 |= CCIE;
         break;
     case 8: //ENTER
         button = 2;
-        TA0CCR0 = TA0R + 50000;
+        TA0CCR0 = TA0R + 15000;
         TA0CCTL0 |= CCIE;
 
         break;
     case 4: // UP
         button = 0;
-        TA0CCR0 = TA0R + 50000;
+        TA0CCR0 = TA0R + 15000;
         TA0CCTL0 |= CCIE;
         break;
 
     case 10: // BACK
         button = 3;
-        TA0CCR0 = TA0R + 50000;
+        TA0CCR0 = TA0R + 15000;
         TA0CCTL0 |= CCIE;
         break;
     }
@@ -200,13 +219,39 @@ void BCD2ASC(unsigned char src, char *dest)
     *dest = '\0';
 }
 
-void display_set_name(unsigned char index)
-{
-    clear_display();
-    send_string("Set Pill Name", 0);
-    set_cursor(1, 7);
-    send_string(name[index], 0);
+char empty_container(){
+    unsigned char i;
+    for( i = 0; i < 8; i++){
+        if(pill_names[i][0] == '\0')
+            return i;
+    }
+    return -1;
 }
+
+char empty_schedule(){
+    char i;
+    char j;
+
+    for(i=0;i<8;i++)
+    {
+        if(schedule[i].hour == 0x00 && schedule[i].minute == 0x00)
+            for(j=0;j<8;j++)
+            {
+                if(schedule[i].quantities[j] == 0)
+                    return i;
+            }
+
+    }
+    return -1;
+}
+
+// void display_set_name(unsigned char index)
+// {
+//     clear_display();
+//     send_string("Set Pill Name", 0);
+//     set_cursor(1, 7);
+//     send_string(name[index], 0);
+// }
 
 void display_quantity(unsigned char index)
 {
@@ -220,7 +265,6 @@ void display_quantity(unsigned char index)
 
 void display_time(unsigned char hours, unsigned char minutes)
 {
-
     clear_display();
     set_cursor(0, 3);
     send_string("Hr", 0);
@@ -247,13 +291,12 @@ void display_view_alarms_info()
 
 void display_view_alarms(unsigned char index)
 {
-
     clear_display();
     char *buffer[10];
     display_view_alarms_info();
     set_cursor(1, 0);
 
-    send_string(schedule[index].pill_names[index], 0);
+    //send_string(schedule[index].pill_names[index], 0);
     set_cursor(1, 7);
     ltoa((long)schedule[index].quantities[index], buffer, 10);
     send_string(buffer, 0);
@@ -282,6 +325,78 @@ void display_calendar(unsigned char day, unsigned char month, unsigned char year
     send_string(buffer,0);
 }
 
+void display_letter(unsigned char index, unsigned char column)
+{
+    //clear_display();
+    //send_string("Pill Name",0);
+    set_cursor(1,column);
+    send_character(letter[index]);
+    set_cursor(1,column);
+}
+
+void display_pill_list(char index)
+{
+    clear_display();
+    send_string("Available Pills",0);
+    set_cursor(1,0);
+    send_string("-",0);
+    send_string(pill_names[index],0);
+}
+
+void display_different_pills_quantity(unsigned char index)
+{
+    clear_display();
+    send_string("Pills per Alarm",0);
+    set_cursor(1,7);
+    char *buffer[10];
+    BCD2ASC(minute[index], buffer);
+    send_string(buffer,0);
+}
+
+void add_alarm(unsigned char hour, unsigned char minute, char* quantity){
+    char empty_slot = empty_schedule();
+    char i;
+    if(alarms_count <= 7)
+    {
+    schedule[empty_slot].hour = hour;
+    schedule[empty_slot].minute = minute;
+    for(i=0;i<8;i++)
+    {
+        schedule[empty_slot].quantities[i] = quantity[i];
+    }
+    alarms_count++;
+    //return true;
+    }
+    // else
+    //     return false;  
+}
+
+void add_pills(char* pill_name, char pill_quantity)
+{   if(pill_count<=8)
+    {
+    char slot = empty_container();
+    strcpy(pill_names[slot], pill_name);
+    pill_quantities[slot] = pill_quantity;
+    //return true;
+    }
+    //return false;
+}
+
+void remove_alarm(unsigned char hour, unsigned char minute, char* quantity)
+{
+    
+}
+
+void remove_pill(char* pill_name)
+{
+
+}
+void refill(int* pill_quantities)
+{
+
+}
+
+
 void set_rtc_time(unsigned char day, unsigned char month, unsigned char year, unsigned char hour, unsigned char minute){
 
        RTCCTL0_H = RTCKEY_H;                     // Unlock RTC
@@ -301,29 +416,28 @@ void set_rtc_time(unsigned char day, unsigned char month, unsigned char year, un
        RTCCTL1 &= ~(RTCHOLD); // Start RTC
 }
 
-void enter_button(){
+void enter_button()
+{
     if (buzzer_on)
-           { // STOP BUZZER ---- TRY P1.6 AS GPIO AND CLEARING PIN
-             buzzer_off();
-           }
-    if (main_menu)
+    { 
+        buzzer_off();
+    }
+
+    
+    else if (main_menu)
   {
 
-      if (menu_index == 0)
-      { // set alarm menu
+      if (menu_index == 0)//SET ALARM MENU
+      { 
           main_menu = false;
-          set_time = false;
           set_alarm = true;
-          set_name = true;
-          display_set_name(0);
-          //hour_select = true;
-          //display_set_name
-          //display_time(0,0);
+          set_time = false;
+          hour_select = true;          
+          display_time(0,0);
       }
 
-      else if(menu_index == 1){
-          //SET TIME MENU
-
+      else if(menu_index == 1) //SET TIME MENU
+      {
          main_menu = false;
          set_alarm = false;
          set_time = true;
@@ -331,10 +445,8 @@ void enter_button(){
          display_calendar(day_index, month_index, year_index);
       }
 
-      else if (menu_index == 2)
+      else if (menu_index == 2)//VIEW ALARMS MENU
       {
-          //VIEW ALARMS MENU
-
           main_menu = false;
           set_alarm = false;
           set_time = false;
@@ -346,82 +458,152 @@ void enter_button(){
           else
               display_view_alarms(alarms_index);
       }
+      else if(menu_index == 3)// ADD PILL MENU
+      {  
+          if(empty_container() == -1)
+          {
+              //display full condition menu
+          }
+          else
+          {
+          clear_display();
+          addPill = true;
+          main_menu = false;
+          set_name = true;
+          send_string("Pill Name",0);
+          set_cursor(1,0);
+          display_letter(letter_index, letter_location_index);
+          }
+      }
   }
+  else if(addPill){ //ADD PILL MENU
 
-   if (set_alarm)
+          if(set_quantities) // user has selected quantity of pills added to a container
+          {
+              set_quantities = false;
+              main_menu = true;
+              addPill = false;
+              dummy_quantity = quantities_index;
+              quantities_index = 0;
+              add_pills(name_buffer,dummy_quantity);
+              on(menu_index);
+          }
+          
+          if(set_name)
+          {
+            if(letter_location_index <= 10)
+            { // if there is space available for writting name
+                name_buffer[letter_location_index] = letter[letter_index];
+                letter_location_index++;
+                letter_index = 0;
+                set_cursor(1,letter_location_index);
+            }
+            else
+            { // not enough space, writting name is done
+                set_name = false;
+                set_quantities = true;
+                letter_location_index = 0;
+                letter_index = 0;
+                //strcpy(pill_names[empty_index], name_buffer);
+                display_quantity(quantities_index);
+            }  
+          }
+           
+      }
+
+    else if (set_alarm)
    {
 
-        if (minute_select)
-       {                                                         // cursor in hours
-           schedule[alarms_count].minute = minute[minute_index]; // user hour input
+        if (minute_select) // SELECCION DE MINUTO DE ALARMA
+       {                                                         
+           minute_input = minute[minute_index];
            minute_select = false;
            hour_index = 0;
-           //minute_index = 0;
-           on(menu_index);
-           main_menu = true;
-           set_alarm = false;
-           set_time = false;
-           alarms_count++;
-           //break;
+           minute_index = 0;
+           different_pills_select = true;
+           //display select diferent pills menu
+           display_different_pills_quantity(different_pills_index); // update counter in up/down button
+
+                     
        }
-        else if (hour_select)
+        else if (hour_select) // SELECCION DE HORA DE ALARMA
        {
-           set_cursor(0, 0);
-           schedule[alarms_count].hour = hour[hour_index];
+           //set_cursor(0, 0);
+           //schedule[alarms_count].hour = hour[hour_index]; // hour_input = hour[hour_index], llamar add_alarm cuando el minuto tambien este set
+           hour_input = hour[hour_index];
            hour_select = false;
            minute_select = true;
            set_cursor(0, 3);
-           //break;
+           
        }
+       else if(different_pills_select) // SELECCION DE # DE DIFERENTES PASTILLAS A DISPENSAR EN LA ALARMA
+       {
+           different_pills_select = false;
+           pill_list = true;
+           display_pill_list(pill_name_index);
+           different_pills_counter = different_pills_index;
 
+       }
+       
+       else if(pill_list) // SELECCION DE CONTAINER(NOMBRE DE PASTILLA) A AÑADIR A LA ALARMA
+       {  
+               //display_pill_list(pill_name_index);
+               set_quantities = true;
+               pill_list = false;
+               display_quantity(quantities_index);       
+       }
 
        else if (set_quantities)
        {
-           schedule[alarms_count].quantities[alarms_count] = hour[quantities_index];
-           quantities_index = 0;
-           set_quantities = false;
-           hour_select = true;
-           display_time(0, 0);
-       }
-       else if (set_name)
-       {
-           strcpy(schedule[alarms_count].pill_names[alarms_count], name[name_index]);
-           set_name = false;
-           set_quantities = true;
-           name_index = 0;
-           display_quantity(0);
-           //break;
+           different_pills_counter--;
+           if(different_pills_counter > 0)
+           {
+               dummy_quantities[pill_name_index] = quantities_index;
+               pill_list = true;
+               set_quantities = false;
+               pill_name_index = 0;
+               quantities_index = 0;
+               display_pill_list(pill_name_index);
+           }
+           else
+           {
+               set_quantities = false;
+               main_menu = true;
+               dummy_quantities[pill_name_index] = quantities_index;
+               quantities_index = 0;
+               on(menu_index);
+               add_alarm(hour_input, minute_input, dummy_quantities);
+           }
        }
 
 
    }
-
    //        if(view_alarms){
    //
    //        }
 
-   if(set_time){
+    else if(set_time){
 
            if(year_select){
                year_select = false;
                hour_select = true;
                year_input = minute[year_index];
                display_time(0,0);
-               //break;
+               
            }
            else if(month_select){ // cursor in hours
               set_cursor(0,6);
               month_select = false;
               year_select = true;
               month_input = minute[month_index]; //using minute array for memory conservation
-              //break;
+              
           }
            else if(day_select){
               set_cursor(0,3);
               day_select = false;
               month_select = true;
               day_input = minute[day_index];
-             // break;
+             
           }
 
             if (minute_select){
@@ -435,7 +617,7 @@ void enter_button(){
                set_alarm = false;
                set_time = false;
                set_rtc_time(day_input, month_input, year_input, hour_input, minute_input);
-              // break;
+              
            }
             if (hour_select){
                //set_cursor(0, 0);
@@ -443,36 +625,38 @@ void enter_button(){
                hour_select = false;
                minute_select = true;
                set_cursor(0, 3);
-               //break;
+               
            }
 
       }
-
 
 }
 
 void back_button(){
     if (set_alarm)
+    {
+        if (hour_select)
         {
-            if (hour_select)
-            {
-                hour_select = false;
-                set_alarm = false;
-                main_menu = true;
-                 //menu_index = 0;
-                on(menu_index);
-            }
-
-            else if (minute_select)
-            {
-                minute_select = false;
-                hour_select = true;
-                set_cursor(0, 0);
-               // schedule[alarms_index].hour = 0x00;
-            }
-
+            hour_select = false;
+            set_alarm = false;
+            main_menu = true;
+             //menu_index = 0;
+            on(menu_index);
         }
-    if(set_time){
+
+        else if (minute_select)
+        {
+            minute_select = false;
+            hour_select = true;
+            set_cursor(0, 0);
+           // schedule[alarms_index].hour = 0x00;
+        }
+
+        //ADD BACK FUNCTIONALITY FOR PILL_LIST, DIFFERENT_PILL_NUMBER, SET_QUANTITY
+
+    }
+    if(set_time)
+    {
         if(hour_select){
             hour_select = false;
             day_select = true;
@@ -503,13 +687,33 @@ void back_button(){
         }
     }
 
-       if (view_alarms)
+    if (view_alarms)
+    {
+        view_alarms = false;
+        main_menu = true;
+        //menu_index = 0;
+        on(menu_index);
+    }
+
+    if(addPill)
+    {
+        if(set_quantities)
         {
-            view_alarms = false;
-            main_menu = true;
-            //menu_index = 0;
-            on(menu_index);
+            set_quantities = false;
+            set_name = true;
+            clear_display();
+            send_string("Pill Name",0);
+            set_cursor(1,0);
+            display_letter(letter_index, letter_location_index);
+            
         }
+        else if(set_name)
+        {
+            set_name = false;
+            main_menu = true;
+            on(menu_index);
+        }        
+    }
 }
 
 void up_button(){
@@ -520,7 +724,7 @@ void up_button(){
        on(menu_index);
     }
 
-    if(set_time)
+    else if(set_time)
     {
 
        if(day_select){ // cursor in minutes
@@ -549,7 +753,7 @@ void up_button(){
 
     }
 
-    if (set_alarm)
+    else if (set_alarm)
    {
 
        if (minute_select)
@@ -561,13 +765,7 @@ void up_button(){
        else if (hour_select)
        { // cursor in hour
            hour_index = (hour_index + 1 + 25) % 25;
-           display_time(hour_index, 0);
-       }
-
-       else if (set_name)
-       {
-           name_index = (name_index + 1 + 8) % 8;
-           display_set_name(name_index);
+           display_time(hour_index, minute_index);
        }
 
        else if (set_quantities)
@@ -575,12 +773,34 @@ void up_button(){
            quantities_index = (quantities_index + 1 + 25) % 25;
            display_quantity(quantities_index);
        }
+
+       else if(pill_list)
+       {
+           pill_name_index = (pill_name_index - 1 + 8) % 8;
+           display_pill_list(pill_name_index);
+       }
+
+      else if(different_pills_select){
+           different_pills_index = (different_pills_index + 1 + 8) % 8;
+           display_different_pills_quantity(different_pills_index);
+       }
    }
 
-    if (view_alarms)
+    else if (view_alarms)
    {
        alarms_index = (alarms_index - 1 + alarms_count) % alarms_count;
        display_view_alarms(alarms_index);
+   }
+
+    else if(addPill){
+       if(set_name){            
+            letter_index = (letter_index + 1) % 27;
+            display_letter(letter_index,letter_location_index);    
+       }
+        if(set_quantities){
+            quantities_index = (quantities_index + 1) % 25;
+            display_quantity(quantities_index);
+        }
    }
 
 }
@@ -633,17 +853,22 @@ void down_button(){
             display_time(hour_index, minute_index);
         }
 
-        else if (set_name)
-        {
-            name_index = (name_index - 1 + 8) % 8;
-            display_set_name(name_index);
-        }
-
         else if (set_quantities)
         {
             quantities_index = (quantities_index - 1 + 25) % 25;
             display_quantity(quantities_index);
         }
+
+       else if(pill_list)
+       {
+           pill_name_index = (pill_name_index + 1 + 8) % 8;
+           display_pill_list(pill_name_index);
+       }
+
+       else if(different_pills_select){
+           different_pills_index = (different_pills_index - 1 + 8) % 8;
+           display_different_pills_quantity(different_pills_index);
+       }
     }
 
      if (view_alarms)
@@ -651,5 +876,16 @@ void down_button(){
         alarms_index = (alarms_index + 1) % alarms_count;
         display_view_alarms(alarms_index);
     }
+
+    if(addPill){
+       if(set_name){
+           letter_index = (letter_index - 1 + 27) % 27;
+           display_letter(letter_index, letter_location_index);
+       }
+       if(set_quantities){
+           quantities_index = (quantities_index - 1 + 25) % 25;
+           display_quantity(quantities_index);
+       }
+   }
 }
 

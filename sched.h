@@ -27,5 +27,15 @@ void enter_button();
 void up_button();
 void down_button();
 void back_button();
+void add_alarm(unsigned char hour, unsigned char minute, char* quantity);
+void remove_alarm(unsigned char hour, unsigned char minute, char* quantity);
+void add_pills(char* pill_name, char pill_quantity);
+void remove_pill(char* pill_name);
+void refill(int* pill_quantities);
+void display_different_pills_quantity(unsigned char index);
+void display_pill_list(char index);
+void display_letter(unsigned char index, unsigned char column);
+char empty_schedule();
+char empty_container();
 
 #endif /* SCHED_H_ */

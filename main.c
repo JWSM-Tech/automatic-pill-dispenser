@@ -14,6 +14,9 @@
 // Current pill counts (int array 8)
 // Reminders array (determine a limit)
 
+char pill_names[8][15];
+char pill_quantities[8];
+
 int main(void)
 {
     WDTCTL = WDTPW | WDTHOLD; // Stop watchdog timer
@@ -31,12 +34,13 @@ int main(void)
     on(0);
 
     _bis_SR_register(GIE);
+
     while (1)
     {
         if (finished_rx)
         {
             check_params(RX_data);
-            add_alarm();
+            //add_alarm();
             finished_rx = false;
         }
         else
