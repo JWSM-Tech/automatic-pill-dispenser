@@ -31,22 +31,25 @@ int remainingPills = 0;                           //keep track of total pills to
 int stage = 1;                                    //stages for the dispensing mechanism, starts at 1
 int dispensedFlag = 0;                            //signals if a pill was dispensed or not
 int servo_toggle = 0;                             //0 = 0, 1 = 180
+int stepperMode = 1;
 
 void dispensing_sequence(int *internalPillContainers)
-{                                                                                        //stage 1 - set up
+{                                              //stage 1 - set up
     make_array_global(internalPillContainers); //save to global variable so it can be accessed by other functions
-    stepperMode = 1; //set to dispensing mode
-    stage++; //go from stage 1 to stage 2
-    TA3CCTL0 |= CCIE;//enable interrupt for 1s timer that traverses dispensing stages
+    stepperMode = 1;                           //set to dispensing mode
+    stage++;                                   //go from stage 1 to stage 2
+    TA3CCTL0 |= CCIE;                          //enable interrupt for 1s timer that traverses dispensing stages
 }
 
 void check_first_nonempty(void)
 {
     int i;
-    for (i = 0; i < 8; i++){
-        if (pillContainers[i] != 0){
+    for (i = 0; i < 8; i++)
+    {
+        if (pillContainers[i] != 0)
+        {
             currentContainer = i; //save current container index
-            angle = pillMap[i]; //save angle corresponding to that container
+            angle = pillMap[i];   //save angle corresponding to that container
             break;
         }
     }
@@ -88,30 +91,44 @@ void move_linear_actuator(int dir)
     TA3CCTL0 |= CCIE; //enable interrupt for 1.5s timer that traverses dispensing stages
 }
 
-void stepper_handler(void){
-    if (stepperMode == 1){ //dispensing mode
-        if ((stepperAtOrigin == 0) && (dispResetFlag == 0)){ //fresh, no reset, havent moved
+void stepper_handler(void)
+{
+    if (stepperMode == 1)
+    { //dispensing mode
+        if ((stepperAtOrigin == 0) && (dispResetFlag == 0))
+        {                         //fresh, no reset, havent moved
             currentDirection = 1; //set direction clock wise
             steps = angle / 1.8;
             TA1CCTL0 |= CCIE; //enable stepper ISR
-        } else if ((stepperAtOrigin == 0) && (dispResetFlag == 1)){ //ya hicimos reset y volvimos al origen
-            stage++;
-            TA3CCTL0 |= CCIE; //enable stages ISR
-        } else if ((stepperAtOrigin == 1) && (dispResetFlag == 1)){ //ya me movi, wanna move again to reset
-            currentDirection = currentDirection*(-1); //opposite direction to go back
-            steps = angle / 1.8;
-            TA1CCTL0 |= CCIE; //enable stepper ISR
-        } else if ((stepperAtOrigin == 1) && (dispResetFlag == 0)){ //me movi first time but still not ready to go back
+        }
+        else if ((stepperAtOrigin == 0) && (dispResetFlag == 1))
+        { //ya hicimos reset y volvimos al origen
             stage++;
             TA3CCTL0 |= CCIE; //enable stages ISR
         }
-    } else if (stepperMode == 2){ //refill mode
-        if (stepperAtOrigin == 0){ //fresh, havent moved
+        else if ((stepperAtOrigin == 1) && (dispResetFlag == 1))
+        {                                               //ya me movi, wanna move again to reset
+            currentDirection = currentDirection * (-1); //opposite direction to go back
+            steps = angle / 1.8;
+            TA1CCTL0 |= CCIE; //enable stepper ISR
+        }
+        else if ((stepperAtOrigin == 1) && (dispResetFlag == 0))
+        { //me movi first time but still not ready to go back
+            stage++;
+            TA3CCTL0 |= CCIE; //enable stages ISR
+        }
+    }
+    else if (stepperMode == 2)
+    { //refill mode
+        if (stepperAtOrigin == 0)
+        {                         //fresh, havent moved
             currentDirection = 1; //set direction clock wise
             steps = angle / 1.8;
             TA1CCTL0 |= CCIE; //enable stepper ISR
-        } else if (stepperAtOrigin == 1){ //it has moved
-            currentDirection = currentDirection*(-1); //opposite direction to go back
+        }
+        else if (stepperAtOrigin == 1)
+        {                                               //it has moved
+            currentDirection = currentDirection * (-1); //opposite direction to go back
             steps = angle / 1.8;
             TA1CCTL0 |= CCIE; //enable stepper ISR
         }
@@ -142,20 +159,24 @@ void dispense_pill()
     }
 }
 
-void refill_pills(int* containers){
+void refill_pills(int *containers)
+{
     stepperMode = 2; //set to refill mode
     int i;
-    for (i = 0; i < 8; i++){
-        if (containers[i] != 0){
+    for (i = 0; i < 8; i++)
+    {
+        if (containers[i] != 0)
+        {
             currentContainer = i; //save container's index
-            angle = pillMap[i]; //save container's corresponding angle
+            angle = pillMap[i];   //save container's corresponding angle
             break;
         }
     }
     stepper_handler(); //move the steper
 }
 
-void done_refilling(void){
+void done_refilling(void)
+{
     stepper_handler();
 }
 
@@ -165,39 +186,43 @@ __interrupt void stages_ISR(void)
     TA3CCTL0 &= ~CCIFG; //clear CCIFG
     TA3CCTL0 &= ~CCIE;  //disable interrupt, gets reactivated in each of the other functions
 
-    switch(stage){
-        case 2:
-            check_first_nonempty(); //stage 2 - get the next pill container with pills to dispense
-            break;
-        case 3:
-            stepper_handler(); //stage 3 - move stepper to align corresponding pill container with dispenser
-            break;
-        case 4:
-            move_linear_actuator(1); //stage 4 - raise dipsenser servo into pill contaier
-            break;
-        case 5:
-            dispense_pill(); //stage 5 - move dispenser servo until a pill comes out
-            break;
-        case 6:
-            move_linear_actuator(0); //stage 6 - lower dispenser servo
-            break;
-        case 7: //stage 7 - reset containers to original position for next iteration
-            dispResetFlag = 1;
-            TB0CCR5 = 2350; //reset dispenser servo
-            pillContainers[currentContainer] = 0; //discard pills from current container
-            stepper_handler();
-            break;
-        case 8: //stage 8 - check if we're done
-            if (remainingPills > 0){
-                stage = 2;
-                TA3CCTL0 |= CCIE; //reenable ISR
-            } else {
-                stage = 1;
-                servo_toggle = 0;
-            }
-            dispResetFlag = 0;
-            break;
+    switch (stage)
+    {
+    case 2:
+        check_first_nonempty(); //stage 2 - get the next pill container with pills to dispense
+        break;
+    case 3:
+        stepper_handler(); //stage 3 - move stepper to align corresponding pill container with dispenser
+        break;
+    case 4:
+        move_linear_actuator(1); //stage 4 - raise dipsenser servo into pill contaier
+        break;
+    case 5:
+        dispense_pill(); //stage 5 - move dispenser servo until a pill comes out
+        break;
+    case 6:
+        move_linear_actuator(0); //stage 6 - lower dispenser servo
+        break;
+    case 7: //stage 7 - reset containers to original position for next iteration
+        dispResetFlag = 1;
+        TB0CCR5 = 2350;                       //reset dispenser servo
+        pillContainers[currentContainer] = 0; //discard pills from current container
+        stepper_handler();
+        break;
+    case 8: //stage 8 - check if we're done
+        if (remainingPills > 0)
+        {
+            stage = 2;
+            TA3CCTL0 |= CCIE; //reenable ISR
         }
+        else
+        {
+            stage = 1;
+            servo_toggle = 0;
+        }
+        dispResetFlag = 0;
+        break;
+    }
 }
 
 #pragma vector = TIMER1_A0_VECTOR
@@ -223,12 +248,16 @@ __interrupt void stepper_ISR(void)
     else
     {                      //no more steps to traverse, we're done moving the stepper motor
         TA1CCTL0 &= ~CCIE; //disable compare interrupt
-        if (stepperAtOrigin == 0){
+        if (stepperAtOrigin == 0)
+        {
             stepperAtOrigin = 1;
-        } else {
+        }
+        else
+        {
             stepperAtOrigin = 0;
         }
-        if (stepperMode == 1){ //if in dispensing mode
+        if (stepperMode == 1)
+        { //if in dispensing mode
             stepper_handler();
         }
     }
