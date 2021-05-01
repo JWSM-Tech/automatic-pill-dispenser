@@ -7,18 +7,18 @@ char RX_data[buf_size];
 char TXSendBuffer[buf_size];
 bool error = false;
 
-char *SSID = "";
-char *PASSWORD = "";
+char SSID[20] = "";
+char PASSWORD[20] = "";
 
 char pill_names[8][15]; //TODO: replace with refill pill_names variable
 char quantities[8]; //TODO: replace with refill quantities variable
 
-int buffer_index = 0;
+char buffer_index = 0;
 
 unsigned char temp_hour;
 unsigned char temp_minute;
 int temp_quantities[8];
-char temp_pill_names[8][20];
+char temp_pill_names[8][15];
 
 char *temp_string;
 char *send_ptr;
