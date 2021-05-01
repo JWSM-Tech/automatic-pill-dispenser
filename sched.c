@@ -443,6 +443,11 @@ void refill(char* pill_qty)
 
 }
 
+char get_current_alarm()
+{
+    return currentAlarm;
+}
+
 
 void set_rtc_time(unsigned char day, unsigned char month, unsigned char year, unsigned char hour, unsigned char minute){
 
