@@ -405,20 +405,12 @@ void receive_remove_pill(){
     remove_pill(temp_pill_names[0]);
 }
 
-__int8_t getOldestAlarm(){
-    return 0; //TODO: update to calculate oldest alarm from the lcd_control global vars
-}
-
-__int8_t getCurrentAlarm(){
-    return 0; //TODO: update to use the current Alarm from the lcd_control global vars
-}
-
 // send UART build ptr
 
 //param:1
-char* build_analytics(){
+char* build_analytics(unsigned char index){
 
-    char currentAlarm = getCurrentAlarm();
+    char currentAlarm = index;
 
     //"Hour:19 Minute:15 pillNames:[wept,Milton,did,op,one,bai,bee,boy] pillQuantities:[49,12,81,26,57,105,201,304]";
 
@@ -675,12 +667,22 @@ char* build_add_pill_data(char index){
     return TXSendBuffer;
 }
 
+char* build_remove_pill_data(char index){
+    strcpy(TXSendBuffer, "param:8 ");
+
+    strcat(TXSendBuffer, "storeIndex:");
+    strcat(TXSendBuffer, ltoa(index, temp_string, 10));
+    strcat(TXSendBuffer, " ");
+
+    return TXSendBuffer;
+}
+
 void send_uart(char param, char index){ //this function sends the data from MSP430 temporary variables to the UART port
     //TODO: add send_uart to timer_isr while checking flags in order to set param accordingly
 
     switch(param){
         case sendAnalyticsParam:
-            send_ptr = build_analytics();
+            send_ptr = build_analytics(index);
             break;
         case sendNetworkParam:
             send_ptr = build_network_data();
@@ -701,7 +703,7 @@ void send_uart(char param, char index){ //this function sends the data from MSP4
             send_ptr = build_add_pill_data(index);
             break;
         case sendRemovePillParam:
-            send_ptr = build_remove_reminder_data(index);
+            send_ptr = build_remove_pill_data(index);
             break;
         
         default: send_ptr = "";
