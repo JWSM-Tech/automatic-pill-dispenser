@@ -39,7 +39,7 @@ __interrupt void ADC12_ISR(void){
                     if(ADC_value < 2047)
                     {
                         schedule[getCurrentAlarm()].taken = true;
-                        build_analytics()
+                        build_analytics(getCurrentAlarm());
                     }
                 __bic_SR_register_on_exit(LPM0_bits);
                 break;
