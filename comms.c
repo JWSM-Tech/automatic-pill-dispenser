@@ -38,8 +38,8 @@ __interrupt void ADC12_ISR(void){
                 ADC_value = ADC12MEM0; // Save MEM0
                     if(ADC_value < 2047)
                     {
-                        schedule[getCurrentAlarm()].taken = true;
-                        build_analytics(getCurrentAlarm());
+                        schedule[get_current_alarm()].taken = true;
+                        build_analytics(get_current_alarm());
                     }
                 __bic_SR_register_on_exit(LPM0_bits);
                 break;
