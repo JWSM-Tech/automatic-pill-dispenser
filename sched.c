@@ -430,7 +430,7 @@ void refill(char* pill_qty)
             break;
         }
     }
-    //refill_pills()
+    refill_pills(pill_qty);
     clear_display();
     set_cursor(0,3);
     send_string("Refilling",0);
