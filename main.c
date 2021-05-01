@@ -34,7 +34,8 @@ int main(void)
     init_comms();
 
     display_init();
-    on();
+    on(0);
+
     _bis_SR_register(GIE);
 
     if (DEBUG)

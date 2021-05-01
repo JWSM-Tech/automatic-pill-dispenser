@@ -24,8 +24,11 @@ struct alarm
     bool taken;
 };
 
+//int pill_quantities[8];
+//char pill_names[8][15];
 struct alarm schedule[8];
 extern char pill_names[8][15];
 extern char pill_quantities[8];
+
 
 #endif /* MAIN_H_ */
