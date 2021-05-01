@@ -9,6 +9,7 @@ unsigned char menu_index = 0;
 char pill_count = 0;
 char dummy_quantity = 0;
 char button;
+char currentAlarm;
 
 #pragma PERSISTENT(menu)
 const char *menu[] = {"1.Add Alarm", "2.Set Time", "3.View Alarms", "4.Add Pill", "5.Settings"};
@@ -153,7 +154,8 @@ __interrupt void RTC_ISR(void)
             if (schedule[i].hour == RTCHOUR && schedule[i].minute == RTCMIN)
             {
                 buzzer();
-                dispensing_sequence(schedule[i].quantities);
+                currentAlarm = i;
+                //dispensing_sequence(schedule[i].quantities);
                 //display corresponding alarm
             }
         }
@@ -190,6 +192,8 @@ void buzzer_off(){
 //   P1DIR |= BIT6;
     TA0CCTL1 = 0;
    buzzer_on = false;
+   dispensing_sequence(schedule[currentAlarm].quantities);
+
 }
 
 void on(unsigned char index)
@@ -437,6 +441,11 @@ void refill(char* pill_qty)
     set_cursor(1,0);
     send_string("ENTER if done",0);
 
+}
+
+char get_current_alarm()
+{
+    return currentAlarm;
 }
 
 
