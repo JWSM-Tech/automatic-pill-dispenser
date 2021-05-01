@@ -42,10 +42,4 @@ char* build_analytics();
 // Shared global variables
 extern bool finished_rx;
 extern char RX_data[buf_size];
-
-extern void add_alarm(unsigned char hour, unsigned char minute, char* quantity);
-extern void remove_alarm(unsigned char hour, unsigned char minute, char* quantity);
-extern void add_pill(char* pill_name, char pill_quantity);
-extern void remove_pill(char* pill_name);
-extern void refill(char* pill_quantities);
 #endif /* COMMS_H_ */

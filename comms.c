@@ -1,5 +1,6 @@
 #include "main.h"
 #include "comms.h"
+#include "sched.h"
 
 bool finished_rx = false;
 char RX_data[buf_size];
@@ -35,6 +36,11 @@ __interrupt void ADC12_ISR(void){
     switch(__even_in_range(ADC12IV, ADC12IV_ADC12RDYIFG)){
         case ADC12IV_ADC12IFG0: // ADC12MEM0 Interrupt
                 ADC_value = ADC12MEM0; // Save MEM0
+                    if(ADC_value < 2047)
+                    {
+                        schedule[getCurrentAlarm()].taken = true;
+                        build_analytics()
+                    }
                 __bic_SR_register_on_exit(LPM0_bits);
                 break;
         default: break;
@@ -381,7 +387,7 @@ void receive_add_pill(){
              char_idx++;
         }
     }
-    add_pill(temp_pill_names[0], temp_quantities[0]);
+    add_pills(temp_pill_names[0], temp_quantities[0]);
 }
 
 void receive_remove_pill(){
@@ -516,6 +522,8 @@ char* build_analytics(unsigned char index){
     strcat(TXSendBuffer, "Taken:");
     strcat(TXSendBuffer, ltoa(schedule[currentAlarm].taken, temp_string, 10));
     strcat(TXSendBuffer, " ");
+
+    schedule[currentAlarm].taken = true;
 
     return TXSendBuffer;
 }
