@@ -39,7 +39,6 @@ int main(void)
         if (finished_rx)
         {
             check_params(RX_data);
-            add_alarm();
             finished_rx = false;
         }
         else
