@@ -69,6 +69,7 @@ bool year_select = false;
 bool addPill = false;
 bool different_pills_select = false;
 bool pill_list = false;
+bool refilling = false;
 
 
 // ISRs
@@ -84,54 +85,45 @@ __interrupt void port2_handler(void)
         break;
 
     case 6: //DOWN
-        button = 1;
-        TA0CCR0 = TA0R + 15000;
-        TA0CCTL0 |= CCIE;
+        down_button();
         break;
     case 8: //ENTER
-        button = 2;
-        TA0CCR0 = TA0R + 15000;
-        TA0CCTL0 |= CCIE;
-
+        enter_button();
         break;
     case 4: // UP
-        button = 0;
-        TA0CCR0 = TA0R + 15000;
-        TA0CCTL0 |= CCIE;
-        break;
-
-    case 10: // BACK
-        button = 3;
-        TA0CCR0 = TA0R + 15000;
-        TA0CCTL0 |= CCIE;
-        break;
-    }
-}
-
-#pragma vector = TIMER0_A0_VECTOR
-__interrupt void TimerA0_ISR(void)
-{
-    TA0CCTL0 &= ~CCIE;
-
-    switch(button){
-    case 0:
         up_button();
         break;
 
-    case 1:
-        down_button();
-        break;
-
-    case 2:
-        enter_button();
-        break;
-
-    case 3:
+    case 10: // BACK
         back_button();
         break;
     }
-
 }
+
+//#pragma vector = TIMER0_A0_VECTOR
+//__interrupt void TimerA0_ISR(void)
+//{
+//    TA0CCTL0 &= ~CCIE;
+//
+//    switch(button){
+//    case 0:
+//        up_button();
+//        break;
+//
+//    case 1:
+//        down_button();
+//        break;
+//
+//    case 2:
+//        enter_button();
+//        break;
+//
+//    case 3:
+//        back_button();
+//        break;
+//    }
+//
+//}
 #pragma vector = TIMER0_A1_VECTOR
 __interrupt void TimerA1_ISR(void)
 {
@@ -188,7 +180,7 @@ void buzzer()
 //    P1DIR |= BIT6;
 //    P1SEL1 |= BIT6;
 //    P1SEL0 |= BIT6;
-    TA0CCTL1 = OUTMOD_4 | CCIE;
+    TA0CCTL1 = CCIE;
     TA0CCR1 = 500;
 }
 
@@ -299,7 +291,7 @@ void display_view_alarms(unsigned char index)
     display_view_alarms_info();
     set_cursor(1, 0);
 
-    //send_string(schedule[index].pill_names[index], 0);
+    send_string(pill_names[index], 0);
     set_cursor(1, 7);
     ltoa((long)schedule[index].quantities[index], buffer, 10);
     send_string(buffer, 0);
@@ -424,10 +416,27 @@ void remove_pill(char* pill_name)
     
 }
 
-void refill(int* pill_quantities)
+void refill(char* pill_qty)
 {
+    refilling = true;
     //refill container with integer != 0
     //index of container represents the index in pil_name of pill to refill
+    char i;
+    for(i=0;i<ALARMS_LENGTH;i++)
+    {
+        if(pill_qty[i] != 0)
+        {
+            pill_quantities[i] = pill_qty[i];
+            break;
+        }
+    }
+    //refill_pills()
+    clear_display();
+    set_cursor(0,3);
+    send_string("Refilling",0);
+    set_cursor(1,0);
+    send_string("ENTER if done",0);
+
 }
 
 
@@ -455,6 +464,11 @@ void enter_button()
     if (buzzer_on)
     { 
         buzzer_off();
+    }
+
+    else if(refilling)
+    {
+        on(menu_index); 
     }
 
     

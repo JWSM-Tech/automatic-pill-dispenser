@@ -42,17 +42,17 @@ void init_sched_syst(void)
     // Could also use RTC
     // Use CCR1
 
-    //TA0CCTL1 = OUTMOD_4; // toggle
-    TA0CTL = (TACLR | TASSEL__SMCLK | ID__1 | MC__CONTINUOUS);
-    TA0CCR1 = 0;
+    TA0CCTL1 = OUTMOD_7; // toggle
+    TA0CTL = (TACLR | TASSEL__SMCLK | ID__1 | MC__UP);
+    TA0CCR0 = 1000;
 
     //*** RTC SETUP ***
     // *** BUTTONS SETUP ***
 
     P2DIR &= ~(UP | DOWN | ENTER | BACK);
     P2IFG &= ~(UP | DOWN | ENTER | BACK);
-    P2REN |= UP | DOWN | ENTER | BACK;
-    P2OUT |= UP | DOWN | ENTER | BACK;
+//    P2REN |= UP | DOWN | ENTER | BACK;
+//    P2OUT |= UP | DOWN | ENTER | BACK;
     P2IES |= UP | DOWN | ENTER | BACK;
     //P2IES &= ~(DOWN | ENTER | BACK);
     P2IE |= UP | DOWN | ENTER | BACK;
