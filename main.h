@@ -21,10 +21,11 @@ struct alarm
     unsigned char hour;
     unsigned char minute;
     int quantities[8];
-    char pill_names[8][15];
     bool taken;
 };
 
 struct alarm schedule[8];
+extern char pill_names[8][15];
+extern char pill_quantities[8];
 
 #endif /* MAIN_H_ */

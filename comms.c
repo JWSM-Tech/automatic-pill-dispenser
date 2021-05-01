@@ -452,7 +452,7 @@ char* build_analytics(){
 
     int i;
     for(i = 0; i< 8; i++){
-        strcat(TXSendBuffer, schedule[currentAlarm].pill_names[i]);
+        strcat(TXSendBuffer, pill_names[i]);
 
         if(i < 7)
             strcat(TXSendBuffer, ",");

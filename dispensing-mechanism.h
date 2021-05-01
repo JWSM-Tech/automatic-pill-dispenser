@@ -8,15 +8,13 @@
 #define DISPENSING_MECHANISM_H_
 
 void dispensing_sequence(int *internalPillContainers);
+void check_first_nonempty(void);
 void make_array_global(int *array);
 void move_linear_actuator(int dir);
-void rotate_stepper(int dir, int angle);
-int get_nearest_container(int *pillContainers);
-int get_direction(int index);
-int get_distance_to_travel(int index, int dir);
+void stepper_handler(void);
 void dispense_pill();
-void recalculate_variables(void);
-void reset_pill_positions(void);
+void refill_pills(int* containers);
+void done_refilling(void);
 
 extern int dispensedFlag;
 
