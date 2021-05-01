@@ -14,6 +14,9 @@
 // Current pill counts (int array 8)
 // Reminders array (determine a limit)
 
+// TODO: REMOVE THIS
+#define DEBUG 1
+
 char pill_names[8][15];
 char pill_quantities[8];
 
@@ -35,17 +38,25 @@ int main(void)
 
     _bis_SR_register(GIE);
 
-    while (1)
+    if (DEBUG)
     {
-        if (finished_rx)
+        int test[8] = {0, 0, 1, 0, 2, 0, 0, 3};
+        dispensing_sequence(test);
+    }
+
+    else
+    {
+        while (1)
         {
-            check_params(RX_data);
-            //add_alarm();
-            finished_rx = false;
-        }
-        else
-        {
-            _bis_SR_register(LPM0_bits + GIE);
+            if (finished_rx)
+            {
+                check_params(RX_data);
+                finished_rx = false;
+            }
+            else
+            {
+                _bis_SR_register(LPM0_bits + GIE);
+            }
         }
     }
 }
