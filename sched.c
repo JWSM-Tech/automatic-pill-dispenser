@@ -11,7 +11,7 @@ char dummy_quantity = 0;
 char button;
 
 #pragma PERSISTENT(menu)
-const char *menu[] = {"1.Set Alarm", "2.Set Time", "3.View Alarms", "4.Add Pill", "5.Settings"};
+const char *menu[] = {"1.Add Alarm", "2.Set Time", "3.View Alarms", "4.Add Pill", "5.Settings"};
 
 #pragma PERSISTENT(name)
 //const char *name[] = {"A", "B", "C", "D", "E", "F", "G", "H"};
@@ -218,8 +218,10 @@ void BCD2ASC(unsigned char src, char *dest)
     *dest++ = outputs[src & 0xf];
     *dest = '\0';
 }
-
-char empty_container(){
+/*Searches for an empty container. An empty container is defined 
+by a NULL character. Returns the index of the empty container, else returns -1.
+pill_names represents the array of the pills in the device*/
+char empty_container(){ 
     unsigned char i;
     for( i = 0; i < 8; i++){
         if(pill_names[i][0] == '\0')
@@ -227,15 +229,16 @@ char empty_container(){
     }
     return -1;
 }
-
+/*Searches forn an empty schedule. An empty schedule is define 
+by having all schedule properties equal to 0. Returns the index of an empty schedule slot, else returns -1.*/
 char empty_schedule(){
     char i;
     char j;
 
-    for(i=0;i<8;i++)
+    for(i=0;i<ALARMS_LENGTH;i++)
     {
         if(schedule[i].hour == 0x00 && schedule[i].minute == 0x00)
-            for(j=0;j<8;j++)
+            for(j=0;j<ALARMS_LENGTH;j++)
             {
                 if(schedule[i].quantities[j] == 0)
                     return i;
@@ -377,23 +380,54 @@ void add_pills(char* pill_name, char pill_quantity)
     char slot = empty_container();
     strcpy(pill_names[slot], pill_name);
     pill_quantities[slot] = pill_quantity;
+    pill_count++;
     //return true;
     }
     //return false;
 }
 
 void remove_alarm(unsigned char hour, unsigned char minute, char* quantity)
-{
-    
+{   char i;
+    char j; 
+    for(i = 0; i< ALARMS_LENGTH;i++ )
+    {
+        if(schedule[i].hour == hour && schedule[i].minute == minute)
+            for(j = 0; j<ALARMS_LENGTH ; j++)
+            {
+                if(memcmp(schedule[i].quantities, quantity, sizeof(quantity)) == 0)
+                {
+                    schedule[i].hour == 0;
+                    schedule[i].minute = 0;
+                    schedule[i].quantities[j] == 0;
+                    alarms_count--;
+                }
+            }
+
+    }
 }
 
 void remove_pill(char* pill_name)
 {
-
+    char i;
+    char j;
+    for(i = 0;i<MAXIMUM_PILLS;i++)
+    {   
+       for(j = 0; j<PILL_NAME_LENGTH;j++)
+       {
+           if(strcmp(pill_name, pill_names[i]) == 0)
+           {
+               pill_names[i][j] = '\0';
+               pill_count--;
+           }  
+       }
+    }
+    
 }
+
 void refill(int* pill_quantities)
 {
-
+    //refill container with integer != 0
+    //index of container represents the index in pil_name of pill to refill
 }
 
 
@@ -518,8 +552,6 @@ void enter_button()
        {                                                         
            minute_input = minute[minute_index];
            minute_select = false;
-           hour_index = 0;
-           minute_index = 0;
            different_pills_select = true;
            //display select diferent pills menu
            display_different_pills_quantity(different_pills_index); // update counter in up/down button
@@ -533,7 +565,7 @@ void enter_button()
            hour_input = hour[hour_index];
            hour_select = false;
            minute_select = true;
-           set_cursor(0, 3);
+           //set_cursor(0, 3);
            
        }
        else if(different_pills_select) // SELECCION DE # DE DIFERENTES PASTILLAS A DISPENSAR EN LA ALARMA
@@ -550,7 +582,7 @@ void enter_button()
                //display_pill_list(pill_name_index);
                set_quantities = true;
                pill_list = false;
-               display_quantity(quantities_index);       
+               display_quantity(quantities_index);    // ? pasar aqui el index del pill seleccionado   
        }
 
        else if (set_quantities)
@@ -571,6 +603,8 @@ void enter_button()
                main_menu = true;
                dummy_quantities[pill_name_index] = quantities_index;
                quantities_index = 0;
+               hour_index = 0;
+                minute_index = 0;
                on(menu_index);
                add_alarm(hour_input, minute_input, dummy_quantities);
            }
@@ -651,6 +685,21 @@ void back_button(){
             set_cursor(0, 0);
            // schedule[alarms_index].hour = 0x00;
         }
+
+        else if(different_pills_select)
+        {
+            different_pills_select = false;
+            minute_select = true;
+            display_time(hour_index, minute_index);
+        }
+
+        else if(pill_list)
+        {
+            pill_list = false;
+            different_pills_select = true;
+            display_different_pills_quantity(different_pills_index);
+        }
+
 
         //ADD BACK FUNCTIONALITY FOR PILL_LIST, DIFFERENT_PILL_NUMBER, SET_QUANTITY
 

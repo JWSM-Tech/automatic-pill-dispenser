@@ -9,6 +9,9 @@
 #define SCHED_H_
 
 #define ALARMS_LENGTH 8
+#define PILL_NAME_LENGTH 15
+#define MAXIMUM_PILLS 8
+
 
 // Functions
 
