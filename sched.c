@@ -125,12 +125,12 @@ __interrupt void port2_handler(void)
 //    }
 //
 //}
-#pragma vector = TIMER0_A1_VECTOR
-__interrupt void TimerA1_ISR(void)
-{
-    TA0CCR1 += 500;
+// #pragma vector = TIMER0_A1_VECTOR
+// __interrupt void TimerA1_ISR(void)
+// {
+//     TA0CCR1 += 500;
 
-}
+// }
 
 #pragma vector = RTC_VECTOR
 __interrupt void RTC_ISR(void)
@@ -182,7 +182,7 @@ void buzzer()
 //    P1DIR |= BIT6;
 //    P1SEL1 |= BIT6;
 //    P1SEL0 |= BIT6;
-    TA0CCTL1 = CCIE;
+   // TA0CCTL1 = CCIE;
     TA0CCR1 = 500;
 }
 
@@ -190,7 +190,7 @@ void buzzer_off(){
 //   P1SEL0 &= ~BIT6;
 //   P1SEL1 &= ~BIT6;
 //   P1DIR |= BIT6;
-    TA0CCTL1 = 0;
+    TA0CCR1 = 0;
    buzzer_on = false;
    dispensing_sequence(schedule[currentAlarm].quantities);
 
@@ -723,8 +723,12 @@ void back_button(){
             display_different_pills_quantity(different_pills_index);
         }
 
-
-        //ADD BACK FUNCTIONALITY FOR PILL_LIST, DIFFERENT_PILL_NUMBER, SET_QUANTITY
+        else if(set_quantities)
+        {
+            set_quantities = false;
+            pill_list = true;
+            display_pill_list(pill_name_index);
+        }
 
     }
     if(set_time)
