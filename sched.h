@@ -40,5 +40,6 @@ void display_pill_list(char index);
 void display_letter(unsigned char index, unsigned char column);
 char empty_schedule();
 char empty_container();
+char get_current_alarm();
 
 #endif /* SCHED_H_ */

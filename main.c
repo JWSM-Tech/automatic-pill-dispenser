@@ -15,7 +15,7 @@
 // Reminders array (determine a limit)
 
 // TODO: REMOVE THIS
-#define DEBUG 1
+#define DEBUG 0
 
 char pill_names[8][15];
 char pill_quantities[8];

@@ -11,9 +11,6 @@ bool error = false;
 char SSID[20] = "";
 char PASSWORD[20] = "";
 
-char pill_names[8][15]; //TODO: replace with refill pill_names variable
-char quantities[8]; //TODO: replace with refill quantities variable
-
 char buffer_index = 0;
 
 unsigned char temp_hour;
@@ -380,9 +377,9 @@ void receive_add_pill(){
         //assume two digits
         while(array_ptr[0] != stop_array_ptr[0]){
              if(char_idx*16)
-                temp_hour += array_ptr[0] - '0';
+                 temp_quantities[0] += array_ptr[0] - '0';
              else
-                temp_hour += (array_ptr[0] - '0')*10; //sends hour in Hex BCD
+                 temp_quantities[0] += (array_ptr[0] - '0')*10; //sends hour in Hex BCD
              array_ptr++;
              char_idx++;
         }
@@ -569,7 +566,7 @@ char* build_pills_info(){
     strcat(TXSendBuffer, ":[");
 
     for(i = 0; i< 8; i++){
-        strcat(TXSendBuffer, ltoa(quantities[i], temp_string, 10));
+        strcat(TXSendBuffer, ltoa(pill_quantities[i], temp_string, 10));
 
         if(i < 7)
             strcat(TXSendBuffer, ",");
@@ -615,7 +612,7 @@ char* build_add_reminder_data(unsigned char index){
 
     int i;
     for(i = 0; i< 8; i++){
-        strcat(TXSendBuffer, ltoa(quantities[i], temp_string, 10));
+        strcat(TXSendBuffer, ltoa(schedule[index].quantities[i], temp_string, 10));
 
         if(i < 7)
             strcat(TXSendBuffer, ",");
@@ -646,7 +643,7 @@ char* build_refill_pills(){
     strcat(TXSendBuffer, ":[");
     int i;
     for(i = 0; i< 8; i++){
-        strcat(TXSendBuffer, ltoa(quantities[i], temp_string, 10));
+        strcat(TXSendBuffer, ltoa(pill_quantities[i], temp_string, 10));
 
         if(i < 7)
             strcat(TXSendBuffer, ",");
@@ -662,6 +659,7 @@ char* build_add_pill_data(char index){
 
     strcat(TXSendBuffer, "storeIndex:");
     strcat(TXSendBuffer, ltoa(index, temp_string, 10));
+    strcat(TXSendBuffer, " ");
 
     strcat(TXSendBuffer, "pillName:");
     strcat(TXSendBuffer, pill_names[index]);
@@ -669,7 +667,18 @@ char* build_add_pill_data(char index){
 
     
     strcat(TXSendBuffer, "pillQuantity:");
-    strcat(TXSendBuffer, ltoa(quantities[index], temp_string, 10));
+    if(pill_quantities[index] < 10)
+    {
+        temp_string[0] = '0';
+        temp_string[1] = pill_quantities[index] + '0';
+        temp_string[2] = '\0';
+    }
+    else
+    {
+        ltoa(pill_quantities[index], temp_string, 10);
+    }
+
+    strcat(TXSendBuffer, temp_string);
     strcat(TXSendBuffer, " ");
 
     return TXSendBuffer;

@@ -37,7 +37,7 @@ void empty_buffer(unsigned char *RX_data, int buffer_index);
 void send_uart(char param, char index);
 char* build_refill_pills();
 char* build_network_data();
-char* build_analytics();
+char* build_analytics(unsigned char index);
 
 // Shared global variables
 extern bool finished_rx;
