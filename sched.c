@@ -1,6 +1,7 @@
 #include "main.h"
 #include "sched.h"
 #include "init.h"
+#include "comms.h"
 #include "dispensing-mechanism.h"
 
 unsigned char alarms_count = 0;
@@ -365,6 +366,7 @@ void add_alarm(unsigned char hour, unsigned char minute, char* quantity){
     }
     alarms_count++;
     //return true;
+    send_uart(sendAddReminderParam, empty_slot);
     }
     // else
     //     return false;  
@@ -378,7 +380,9 @@ void add_pills(char* pill_name, char pill_quantity)
     pill_quantities[slot] = pill_quantity;
     pill_count++;
     //return true;
+    send_uart(sendAddPillParam, get_current_alarm());
     }
+
     //return false;
 }
 

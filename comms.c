@@ -1,5 +1,6 @@
 #include "main.h"
 #include "comms.h"
+#include "sched.h"
 
 bool finished_rx = false;
 char RX_data[buf_size];
@@ -9,9 +10,6 @@ bool error = false;
 
 char SSID[20] = "";
 char PASSWORD[20] = "";
-
-char pill_names[8][15]; //TODO: replace with refill pill_names variable
-char quantities[8]; //TODO: replace with refill quantities variable
 
 char buffer_index = 0;
 
@@ -35,6 +33,11 @@ __interrupt void ADC12_ISR(void){
     switch(__even_in_range(ADC12IV, ADC12IV_ADC12RDYIFG)){
         case ADC12IV_ADC12IFG0: // ADC12MEM0 Interrupt
                 ADC_value = ADC12MEM0; // Save MEM0
+                    if(ADC_value < 2047)
+                    {
+                        schedule[get_current_alarm()].taken = true;
+                        build_analytics(get_current_alarm());
+                    }
                 __bic_SR_register_on_exit(LPM0_bits);
                 break;
         default: break;
@@ -374,14 +377,14 @@ void receive_add_pill(){
         //assume two digits
         while(array_ptr[0] != stop_array_ptr[0]){
              if(char_idx*16)
-                temp_hour += array_ptr[0] - '0';
+                 temp_quantities[0] += array_ptr[0] - '0';
              else
-                temp_hour += (array_ptr[0] - '0')*10; //sends hour in Hex BCD
+                 temp_quantities[0] += (array_ptr[0] - '0')*10; //sends hour in Hex BCD
              array_ptr++;
              char_idx++;
         }
     }
-    add_pill(temp_pill_names[0], temp_quantities[0]);
+    add_pills(temp_pill_names[0], temp_quantities[0]);
 }
 
 void receive_remove_pill(){
@@ -405,20 +408,12 @@ void receive_remove_pill(){
     remove_pill(temp_pill_names[0]);
 }
 
-__int8_t getOldestAlarm(){
-    return 0; //TODO: update to calculate oldest alarm from the lcd_control global vars
-}
-
-__int8_t getCurrentAlarm(){
-    return 0; //TODO: update to use the current Alarm from the lcd_control global vars
-}
-
 // send UART build ptr
 
 //param:1
-char* build_analytics(){
+char* build_analytics(unsigned char index){
 
-    char currentAlarm = getCurrentAlarm();
+    char currentAlarm = index;
 
     //"Hour:19 Minute:15 pillNames:[wept,Milton,did,op,one,bai,bee,boy] pillQuantities:[49,12,81,26,57,105,201,304]";
 
@@ -525,6 +520,8 @@ char* build_analytics(){
     strcat(TXSendBuffer, ltoa(schedule[currentAlarm].taken, temp_string, 10));
     strcat(TXSendBuffer, " ");
 
+    schedule[currentAlarm].taken = true;
+
     return TXSendBuffer;
 }
 
@@ -569,7 +566,7 @@ char* build_pills_info(){
     strcat(TXSendBuffer, ":[");
 
     for(i = 0; i< 8; i++){
-        strcat(TXSendBuffer, ltoa(quantities[i], temp_string, 10));
+        strcat(TXSendBuffer, ltoa(pill_quantities[i], temp_string, 10));
 
         if(i < 7)
             strcat(TXSendBuffer, ",");
@@ -615,7 +612,7 @@ char* build_add_reminder_data(unsigned char index){
 
     int i;
     for(i = 0; i< 8; i++){
-        strcat(TXSendBuffer, ltoa(quantities[i], temp_string, 10));
+        strcat(TXSendBuffer, ltoa(schedule[index].quantities[i], temp_string, 10));
 
         if(i < 7)
             strcat(TXSendBuffer, ",");
@@ -646,7 +643,7 @@ char* build_refill_pills(){
     strcat(TXSendBuffer, ":[");
     int i;
     for(i = 0; i< 8; i++){
-        strcat(TXSendBuffer, ltoa(quantities[i], temp_string, 10));
+        strcat(TXSendBuffer, ltoa(pill_quantities[i], temp_string, 10));
 
         if(i < 7)
             strcat(TXSendBuffer, ",");
@@ -662,6 +659,7 @@ char* build_add_pill_data(char index){
 
     strcat(TXSendBuffer, "storeIndex:");
     strcat(TXSendBuffer, ltoa(index, temp_string, 10));
+    strcat(TXSendBuffer, " ");
 
     strcat(TXSendBuffer, "pillName:");
     strcat(TXSendBuffer, pill_names[index]);
@@ -669,7 +667,28 @@ char* build_add_pill_data(char index){
 
     
     strcat(TXSendBuffer, "pillQuantity:");
-    strcat(TXSendBuffer, ltoa(quantities[index], temp_string, 10));
+    if(pill_quantities[index] < 10)
+    {
+        temp_string[0] = '0';
+        temp_string[1] = pill_quantities[index] + '0';
+        temp_string[2] = '\0';
+    }
+    else
+    {
+        ltoa(pill_quantities[index], temp_string, 10);
+    }
+
+    strcat(TXSendBuffer, temp_string);
+    strcat(TXSendBuffer, " ");
+
+    return TXSendBuffer;
+}
+
+char* build_remove_pill_data(char index){
+    strcpy(TXSendBuffer, "param:8 ");
+
+    strcat(TXSendBuffer, "storeIndex:");
+    strcat(TXSendBuffer, ltoa(index, temp_string, 10));
     strcat(TXSendBuffer, " ");
 
     return TXSendBuffer;
@@ -680,7 +699,7 @@ void send_uart(char param, char index){ //this function sends the data from MSP4
 
     switch(param){
         case sendAnalyticsParam:
-            send_ptr = build_analytics();
+            send_ptr = build_analytics(index);
             break;
         case sendNetworkParam:
             send_ptr = build_network_data();
@@ -701,7 +720,7 @@ void send_uart(char param, char index){ //this function sends the data from MSP4
             send_ptr = build_add_pill_data(index);
             break;
         case sendRemovePillParam:
-            send_ptr = build_remove_reminder_data(index);
+            send_ptr = build_remove_pill_data(index);
             break;
         
         default: send_ptr = "";
