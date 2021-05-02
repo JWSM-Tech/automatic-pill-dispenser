@@ -438,7 +438,7 @@ void refill(char* pill_qty)
     {
         if(pill_qty[i] != 0)
         {
-            pill_quantities[i] = pill_qty[i];
+            pill_quantities[i] += pill_qty[i];
             break;
         }
     }
