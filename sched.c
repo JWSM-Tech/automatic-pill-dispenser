@@ -3,6 +3,7 @@
 #include "init.h"
 #include "comms.h"
 #include "dispensing-mechanism.h"
+#include "time.h"
 
 unsigned char alarms_count = 0;
 unsigned char alarms_index = 0;
@@ -13,7 +14,7 @@ char button;
 char currentAlarm;
 
 #pragma PERSISTENT(menu)
-const char *menu[] = {"1.Add Alarm", "2.Set Time", "3.View Alarms", "4.Add Pill", "5.Settings"};
+const char *menu[] = {"1.Add Alarm", "2.Set Time", "3.View Alarms", "4.Add Pill", "5.View Pills"};
 
 #pragma PERSISTENT(name)
 //const char *name[] = {"A", "B", "C", "D", "E", "F", "G", "H"};
@@ -72,6 +73,7 @@ bool addPill = false;
 bool different_pills_select = false;
 bool pill_list = false;
 bool refilling = false;
+bool view_pills = false;
 
 
 // ISRs
@@ -126,12 +128,12 @@ __interrupt void port2_handler(void)
 //    }
 //
 //}
-//#pragma vector = TIMER0_A1_VECTOR
-//__interrupt void TimerA1_ISR(void)
-//{
-//    TA0CCR1 += 500;
-//
-//}
+// #pragma vector = TIMER0_A1_VECTOR
+// __interrupt void TimerA1_ISR(void)
+// {
+//     TA0CCR1 += 500;
+
+// }
 
 #pragma vector = RTC_VECTOR
 __interrupt void RTC_ISR(void)
@@ -156,6 +158,7 @@ __interrupt void RTC_ISR(void)
             {
                 buzzer();
                 currentAlarm = i;
+                //display dispensing pill
                 //dispensing_sequence(schedule[i].quantities);
                 //display corresponding alarm
             }
@@ -180,18 +183,11 @@ __interrupt void RTC_ISR(void)
 void buzzer()
 {
     buzzer_on = true;
-//    P1DIR |= BIT6;
-//    P1SEL1 |= BIT6;
-//    P1SEL0 |= BIT6;
-    TA0CCTL1 = CCIE;
     TA0CCR1 = 500;
 }
 
 void buzzer_off(){
-//   P1SEL0 &= ~BIT6;
-//   P1SEL1 &= ~BIT6;
-//   P1DIR |= BIT6;
-    TA0CCTL1 = 0;
+    TA0CCR1 = 0;
    buzzer_on = false;
    dispensing_sequence(schedule[currentAlarm].quantities);
 
@@ -253,6 +249,9 @@ char empty_schedule(){
 //     send_string(name[index], 0);
 // }
 
+/* -------------------DISPLAYS------------------------*/
+//
+//
 void display_quantity(unsigned char index)
 {
     clear_display();
@@ -351,7 +350,11 @@ void display_different_pills_quantity(unsigned char index)
     char *buffer[10];
     BCD2ASC(minute[index], buffer);
     send_string(buffer,0);
-}
+} 
+
+/* -----------------SCHEDULING SYSTEM -------------*/
+//
+//
 
 void add_alarm(unsigned char hour, unsigned char minute, char* quantity){
     char empty_slot = empty_schedule();
@@ -380,7 +383,7 @@ void add_pills(char* pill_name, char pill_quantity)
     pill_quantities[slot] = pill_quantity;
     pill_count++;
     //return true;
-    send_uart(sendAddPillParam, get_current_alarm());
+    send_uart(sendAddPillParam, slot);
     }
 
     //return false;
@@ -429,12 +432,14 @@ void refill(char* pill_qty)
     refilling = true;
     //refill container with integer != 0
     //index of container represents the index in pil_name of pill to refill
+    //
+    //maybe keep count of hoy many pills have been added
     char i;
     for(i=0;i<ALARMS_LENGTH;i++)
     {
-        if(pill_qty[i] != 0)
+        if(pill_qty[i])
         {
-            pill_quantities[i] = pill_qty[i];
+            pill_quantities[i] += pill_qty[i];
             break;
         }
     }
@@ -444,6 +449,7 @@ void refill(char* pill_qty)
     send_string("Refilling",0);
     set_cursor(1,0);
     send_string("ENTER if done",0);
+    send_uart(sendRefillParam,0);
 
 }
 
@@ -455,6 +461,7 @@ char get_current_alarm()
 
 void set_rtc_time(unsigned char day, unsigned char month, unsigned char year, unsigned char hour, unsigned char minute){
 
+
        RTCCTL0_H = RTCKEY_H;                     // Unlock RTC
 //       RTCCTL0_L = RTCTEVIE | RTCRDYIE | RTCAIE; // enable RTC read ready interrupt
                                                  // enable RTC time event interrupt
@@ -464,7 +471,7 @@ void set_rtc_time(unsigned char day, unsigned char month, unsigned char year, un
        RTCYEAR = year; // Year = 0x2021
        RTCMON = month;     // Month = 0x04 = April
        RTCDAY = day;    // Day = 0x13 = 13
-       RTCDOW = 0x03;    // Day of week = 0x02 = tuesday
+       //RTCDOW = 0x03;    // Day of week = 0x02 = tuesday
        RTCHOUR = hour;   // Hour = 0x10
        RTCMIN = minute;    // Minute = 0x00
        RTCSEC = 0x00;    // Seconds = 0x00
@@ -482,6 +489,7 @@ void enter_button()
     else if(refilling)
     {
         on(menu_index); 
+        //call dispensing mechanism of returning to original state
     }
 
     
@@ -535,6 +543,15 @@ void enter_button()
           set_cursor(1,0);
           display_letter(letter_index, letter_location_index);
           }
+      }
+
+      else if(menu_index == 4) //VIEW PILLS
+      {
+          main_menu = false;
+          view_pills = true;
+          //display pill list;
+          display_pill_list(pill_name_index);
+
       }
   }
   else if(addPill){ //ADD PILL MENU
@@ -727,11 +744,15 @@ void back_button(){
             display_different_pills_quantity(different_pills_index);
         }
 
-
-        //ADD BACK FUNCTIONALITY FOR PILL_LIST, DIFFERENT_PILL_NUMBER, SET_QUANTITY
+        else if(set_quantities)
+        {
+            set_quantities = false;
+            pill_list = true;
+            display_pill_list(pill_name_index);
+        }
 
     }
-    if(set_time)
+    else if(set_time)
     {
         if(hour_select){
             hour_select = false;
@@ -763,7 +784,7 @@ void back_button(){
         }
     }
 
-    if (view_alarms)
+    else if (view_alarms)
     {
         view_alarms = false;
         main_menu = true;
@@ -771,7 +792,7 @@ void back_button(){
         on(menu_index);
     }
 
-    if(addPill)
+    else if(addPill)
     {
         if(set_quantities)
         {
@@ -790,6 +811,14 @@ void back_button(){
             on(menu_index);
         }        
     }
+
+    else if(view_pills)
+    {
+        view_pills = false;
+        main_menu = true;
+        on(menu_index);
+    }
+    
 }
 
 void up_button(){
@@ -864,11 +893,19 @@ void up_button(){
 
     else if (view_alarms)
    {
-       alarms_index = (alarms_index - 1 + alarms_count) % alarms_count;
-       display_view_alarms(alarms_index);
+       if(alarms_count == 0)
+       {
+           display_view_alarms_info();
+       }
+       else
+       {
+           alarms_index = (alarms_index - 1 + alarms_count) % alarms_count;
+           display_view_alarms(alarms_index);
+       }
    }
 
-    else if(addPill){
+    else if(addPill)
+    {
        if(set_name){            
             letter_index = (letter_index + 1) % 27;
             display_letter(letter_index,letter_location_index);    
@@ -877,6 +914,12 @@ void up_button(){
             quantities_index = (quantities_index + 1) % 25;
             display_quantity(quantities_index);
         }
+   }
+
+   else if(view_pills)
+   {
+       pill_name_index = (pill_name_index + 1) % 8;
+       display_pill_list(pill_name_index);
    }
 
 }
@@ -949,8 +992,16 @@ void down_button(){
 
      if (view_alarms)
     {
-        alarms_index = (alarms_index + 1) % alarms_count;
-        display_view_alarms(alarms_index);
+        if(alarms_count == 0)
+        {
+            display_view_alarms_info();
+        }
+        
+        else
+        {
+            alarms_index = (alarms_index + 1) % alarms_count;
+            display_view_alarms(alarms_index);
+        } 
     }
 
     if(addPill){
@@ -962,6 +1013,12 @@ void down_button(){
            quantities_index = (quantities_index - 1 + 25) % 25;
            display_quantity(quantities_index);
        }
+   }
+
+   if(view_pills)
+   {
+       pill_name_index = (pill_name_index - 1 + 8) % 8;
+       display_pill_list(pill_name_index);
    }
 }
 
