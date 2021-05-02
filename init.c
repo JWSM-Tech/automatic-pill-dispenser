@@ -42,7 +42,7 @@ void init_sched_syst(void)
     // Could also use RTC
     // Use CCR1
 
-    TA0CCTL1 = OUTMOD_7; // toggle
+    TA0CCTL1 = OUTMOD_7; // set/reset
     TA0CTL = (TACLR | TASSEL__SMCLK | ID__1 | MC__UP);
     TA0CCR0 = 1000;
 
