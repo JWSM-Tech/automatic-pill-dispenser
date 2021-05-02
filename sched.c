@@ -3,6 +3,7 @@
 #include "init.h"
 #include "comms.h"
 #include "dispensing-mechanism.h"
+#include "time.h"
 
 unsigned char alarms_count = 0;
 unsigned char alarms_index = 0;
@@ -156,6 +157,7 @@ __interrupt void RTC_ISR(void)
             {
                 buzzer();
                 currentAlarm = i;
+                //display dispensing pill
                 //dispensing_sequence(schedule[i].quantities);
                 //display corresponding alarm
             }
@@ -180,17 +182,10 @@ __interrupt void RTC_ISR(void)
 void buzzer()
 {
     buzzer_on = true;
-//    P1DIR |= BIT6;
-//    P1SEL1 |= BIT6;
-//    P1SEL0 |= BIT6;
-   // TA0CCTL1 = CCIE;
     TA0CCR1 = 500;
 }
 
 void buzzer_off(){
-//   P1SEL0 &= ~BIT6;
-//   P1SEL1 &= ~BIT6;
-//   P1DIR |= BIT6;
     TA0CCR1 = 0;
    buzzer_on = false;
    dispensing_sequence(schedule[currentAlarm].quantities);
@@ -253,6 +248,9 @@ char empty_schedule(){
 //     send_string(name[index], 0);
 // }
 
+/* -------------------DISPLAYS------------------------*/
+//
+//
 void display_quantity(unsigned char index)
 {
     clear_display();
@@ -351,7 +349,11 @@ void display_different_pills_quantity(unsigned char index)
     char *buffer[10];
     BCD2ASC(minute[index], buffer);
     send_string(buffer,0);
-}
+} 
+
+/* -----------------SCHEDULING SYSTEM -------------*/
+//
+//
 
 void add_alarm(unsigned char hour, unsigned char minute, char* quantity){
     char empty_slot = empty_schedule();
@@ -429,6 +431,8 @@ void refill(char* pill_qty)
     refilling = true;
     //refill container with integer != 0
     //index of container represents the index in pil_name of pill to refill
+    //
+    //maybe keep count of hoy many pills have been added
     char i;
     for(i=0;i<ALARMS_LENGTH;i++)
     {
@@ -455,6 +459,7 @@ char get_current_alarm()
 
 void set_rtc_time(unsigned char day, unsigned char month, unsigned char year, unsigned char hour, unsigned char minute){
 
+
        RTCCTL0_H = RTCKEY_H;                     // Unlock RTC
 //       RTCCTL0_L = RTCTEVIE | RTCRDYIE | RTCAIE; // enable RTC read ready interrupt
                                                  // enable RTC time event interrupt
@@ -464,7 +469,7 @@ void set_rtc_time(unsigned char day, unsigned char month, unsigned char year, un
        RTCYEAR = year; // Year = 0x2021
        RTCMON = month;     // Month = 0x04 = April
        RTCDAY = day;    // Day = 0x13 = 13
-       RTCDOW = 0x03;    // Day of week = 0x02 = tuesday
+       //RTCDOW = 0x03;    // Day of week = 0x02 = tuesday
        RTCHOUR = hour;   // Hour = 0x10
        RTCMIN = minute;    // Minute = 0x00
        RTCSEC = 0x00;    // Seconds = 0x00
@@ -868,7 +873,14 @@ void up_button(){
 
     else if (view_alarms)
    {
-       alarms_index = (alarms_index - 1 + alarms_count) % alarms_count;
+       if(alarms_count == 0)
+       {
+           alarms_index = 0;
+       }
+       else
+       {
+           alarms_index = (alarms_index - 1 + alarms_count) % alarms_count;
+       }
        display_view_alarms(alarms_index);
    }
 
