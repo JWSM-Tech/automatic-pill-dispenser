@@ -448,6 +448,7 @@ void refill(char* pill_qty)
     send_string("Refilling",0);
     set_cursor(1,0);
     send_string("ENTER if done",0);
+    send_uart(sendRefillParam,0);
 
 }
 
