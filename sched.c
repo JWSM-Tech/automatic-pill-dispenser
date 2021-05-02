@@ -541,6 +541,11 @@ void enter_button()
           display_letter(letter_index, letter_location_index);
           }
       }
+
+      else if(menu_index == 4) //VIEW PILLS
+      {
+
+      }
   }
   else if(addPill){ //ADD PILL MENU
 
@@ -875,13 +880,13 @@ void up_button(){
    {
        if(alarms_count == 0)
        {
-           alarms_index = 0;
+           display_view_alarms_info();
        }
        else
        {
            alarms_index = (alarms_index - 1 + alarms_count) % alarms_count;
+           display_view_alarms(alarms_index);
        }
-       display_view_alarms(alarms_index);
    }
 
     else if(addPill){
@@ -965,8 +970,16 @@ void down_button(){
 
      if (view_alarms)
     {
-        alarms_index = (alarms_index + 1) % alarms_count;
-        display_view_alarms(alarms_index);
+        if(alarms_count == 0)
+        {
+            display_view_alarms_info();
+        }
+        
+        else
+        {
+            alarms_index = (alarms_index + 1) % alarms_count;
+            display_view_alarms(alarms_index);
+        } 
     }
 
     if(addPill){
