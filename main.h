@@ -31,4 +31,20 @@ extern char pill_names[8][15];
 extern char pill_quantities[8];
 
 
+#define sendAnalyticsParam 1 //send analytics
+#define sendNetworkParam 2 // send network
+#define sendPillInfoParam 3
+#define sendAddReminderParam 4 // send reminder
+#define receiveAddReminderParam 4 //receive reminder
+#define sendRemoveReminderParam 5 // send reminder
+#define receiveRemoveReminderParam 5 //receive reminder
+#define sendRefillParam 6 //send refill
+#define receiveRefillParam 6 //receive refill
+#define sendAddPillParam 7 //send add
+#define receiveAddPillParam 7 //receive add
+#define sendRemovePillParam 8 //send remove
+#define receiveRemovePillParam 8 //receive remove
+
+
+
 #endif /* MAIN_H_ */

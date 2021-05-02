@@ -1,6 +1,7 @@
 #include "main.h"
 #include "sched.h"
 #include "init.h"
+#include "comms.h"
 #include "dispensing-mechanism.h"
 
 unsigned char alarms_count = 0;
@@ -9,6 +10,7 @@ unsigned char menu_index = 0;
 char pill_count = 0;
 char dummy_quantity = 0;
 char button;
+char currentAlarm;
 
 #pragma PERSISTENT(menu)
 const char *menu[] = {"1.Add Alarm", "2.Set Time", "3.View Alarms", "4.Add Pill", "5.Settings"};
@@ -124,12 +126,12 @@ __interrupt void port2_handler(void)
 //    }
 //
 //}
-#pragma vector = TIMER0_A1_VECTOR
-__interrupt void TimerA1_ISR(void)
-{
-    TA0CCR1 += 500;
-
-}
+//#pragma vector = TIMER0_A1_VECTOR
+//__interrupt void TimerA1_ISR(void)
+//{
+//    TA0CCR1 += 500;
+//
+//}
 
 #pragma vector = RTC_VECTOR
 __interrupt void RTC_ISR(void)
@@ -153,7 +155,8 @@ __interrupt void RTC_ISR(void)
             if (schedule[i].hour == RTCHOUR && schedule[i].minute == RTCMIN)
             {
                 buzzer();
-                dispensing_sequence(schedule[i].quantities);
+                currentAlarm = i;
+                //dispensing_sequence(schedule[i].quantities);
                 //display corresponding alarm
             }
         }
@@ -190,6 +193,8 @@ void buzzer_off(){
 //   P1DIR |= BIT6;
     TA0CCTL1 = 0;
    buzzer_on = false;
+   dispensing_sequence(schedule[currentAlarm].quantities);
+
 }
 
 void on(unsigned char index)
@@ -361,6 +366,7 @@ void add_alarm(unsigned char hour, unsigned char minute, char* quantity){
     }
     alarms_count++;
     //return true;
+    send_uart(sendAddReminderParam, empty_slot);
     }
     // else
     //     return false;  
@@ -374,7 +380,9 @@ void add_pills(char* pill_name, char pill_quantity)
     pill_quantities[slot] = pill_quantity;
     pill_count++;
     //return true;
+    send_uart(sendAddPillParam, get_current_alarm());
     }
+
     //return false;
 }
 
@@ -437,6 +445,11 @@ void refill(char* pill_qty)
     set_cursor(1,0);
     send_string("ENTER if done",0);
 
+}
+
+char get_current_alarm()
+{
+    return currentAlarm;
 }
 
 
