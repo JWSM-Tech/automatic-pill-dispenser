@@ -14,7 +14,7 @@ char button;
 char currentAlarm;
 
 #pragma PERSISTENT(menu)
-const char *menu[] = {"1.Add Alarm", "2.Set Time", "3.View Alarms", "4.Add Pill", "5.Settings"};
+const char *menu[] = {"1.Add Alarm", "2.Set Time", "3.View Alarms", "4.Add Pill", "5.View Pills"};
 
 #pragma PERSISTENT(name)
 //const char *name[] = {"A", "B", "C", "D", "E", "F", "G", "H"};
@@ -73,6 +73,7 @@ bool addPill = false;
 bool different_pills_select = false;
 bool pill_list = false;
 bool refilling = false;
+bool view_pills = false;
 
 
 // ISRs
@@ -382,7 +383,7 @@ void add_pills(char* pill_name, char pill_quantity)
     pill_quantities[slot] = pill_quantity;
     pill_count++;
     //return true;
-    send_uart(sendAddPillParam, get_current_alarm());
+    send_uart(sendAddPillParam, slot);
     }
 
     //return false;
@@ -488,6 +489,7 @@ void enter_button()
     else if(refilling)
     {
         on(menu_index); 
+        //call dispensing mechanism of returning to original state
     }
 
     
@@ -545,6 +547,10 @@ void enter_button()
 
       else if(menu_index == 4) //VIEW PILLS
       {
+          main_menu = false;
+          view_pills = true;
+          //display pill list;
+          display_pill_list(pill_name_index);
 
       }
   }
@@ -746,7 +752,7 @@ void back_button(){
         }
 
     }
-    if(set_time)
+    else if(set_time)
     {
         if(hour_select){
             hour_select = false;
@@ -778,7 +784,7 @@ void back_button(){
         }
     }
 
-    if (view_alarms)
+    else if (view_alarms)
     {
         view_alarms = false;
         main_menu = true;
@@ -786,7 +792,7 @@ void back_button(){
         on(menu_index);
     }
 
-    if(addPill)
+    else if(addPill)
     {
         if(set_quantities)
         {
@@ -805,6 +811,14 @@ void back_button(){
             on(menu_index);
         }        
     }
+
+    else if(view_pills)
+    {
+        view_pills = false;
+        main_menu = true;
+        on(menu_index);
+    }
+    
 }
 
 void up_button(){
@@ -890,7 +904,8 @@ void up_button(){
        }
    }
 
-    else if(addPill){
+    else if(addPill)
+    {
        if(set_name){            
             letter_index = (letter_index + 1) % 27;
             display_letter(letter_index,letter_location_index);    
@@ -899,6 +914,12 @@ void up_button(){
             quantities_index = (quantities_index + 1) % 25;
             display_quantity(quantities_index);
         }
+   }
+
+   else if(view_pills)
+   {
+       pill_name_index = (pill_name_index + 1) % 8;
+       display_pill_list(pill_name_index);
    }
 
 }
@@ -992,6 +1013,12 @@ void down_button(){
            quantities_index = (quantities_index - 1 + 25) % 25;
            display_quantity(quantities_index);
        }
+   }
+
+   if(view_pills)
+   {
+       pill_name_index = (pill_name_index - 1 + 8) % 8;
+       display_pill_list(pill_name_index);
    }
 }
 
