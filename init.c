@@ -44,7 +44,7 @@ void init_sched_syst(void)
 
     TA0CCTL1 = OUTMOD_7; // set/reset
     TA0CTL = (TACLR | TASSEL__SMCLK | ID__1 | MC__UP);
-    TA0CCR0 = 1000;
+    TA0CCR0 = 3000;
 
     //*** RTC SETUP ***
     // *** BUTTONS SETUP ***

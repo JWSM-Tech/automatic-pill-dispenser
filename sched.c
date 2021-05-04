@@ -128,7 +128,6 @@ __interrupt void RTC_ISR(void)
             {
                 buzzer();
                 currentAlarm = i;
-                //display_dispensed_alarm()
                 //display dispensing pill
                 //dispensing_sequence(schedule[i].quantities);
                 //display corresponding alarm
@@ -154,7 +153,7 @@ __interrupt void RTC_ISR(void)
 void buzzer()
 {
     buzzer_on = true;
-    TA0CCR1 = 500;
+    TA0CCR1 = 2000;
 }
 
 void buzzer_off(){
