@@ -44,7 +44,7 @@ void init_sched_syst(void)
 
     TA0CCTL1 = OUTMOD_7; // set/reset
     TA0CTL = (TACLR | TASSEL__SMCLK | ID__1 | MC__UP);
-    TA0CCR0 = 1000;
+    TA0CCR0 = 3000;
 
     //*** RTC SETUP ***
     // *** BUTTONS SETUP ***
@@ -115,8 +115,8 @@ void init_disp_mech(void)
     TB0CCTL6 = OUTMOD_7; //select reset/set (linear actuator)
     TB0CCTL0 &= ~CAP;    //set CAP = 0 for compare mode
     // initialize at 90 deg = ~1.5ms (testing with 1700)
-    TB0CCR5 = 1900; //used to be 1700
-    TB0CCR6 = 1700;
+    TB0CCR5 = 1000; //used to be 1700
+    TB0CCR6 = 2200;
     TB0CTL |= TBSSEL__SMCLK + MC__UP + ID_0 + TBCLR; //select SMCLK, divider /1
     TB0CCR0 = 20000 - 1;                             // 1000000/50Hz=20000 for 50Hz PWM period - make TB0CCR0 different from 0 to start the timer
 
@@ -127,7 +127,7 @@ void init_disp_mech(void)
 
     // Timer for stepper
     TA1CCTL0 &= ~CAP;                                 //compare mode
-    TA1CCR0 = 3750;                                   //30ms delay for stepper steps: 125000/1000=125 -> 125*30ms=3750
+    TA1CCR0 = 2500;                                   //20ms delay for stepper steps: 125000/1000=125 -> 125*30ms=3750
     TA1CTL |= TASSEL__SMCLK + MC__UP + ID__8 + TACLR; //SMCLK, /8: 1000000/8 = 125000Hz
 
     // Timer for dispenser servo, 2s period
