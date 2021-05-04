@@ -104,36 +104,6 @@ __interrupt void port2_handler(void)
     }
 }
 
-//#pragma vector = TIMER0_A0_VECTOR
-//__interrupt void TimerA0_ISR(void)
-//{
-//    TA0CCTL0 &= ~CCIE;
-//
-//    switch(button){
-//    case 0:
-//        up_button();
-//        break;
-//
-//    case 1:
-//        down_button();
-//        break;
-//
-//    case 2:
-//        enter_button();
-//        break;
-//
-//    case 3:
-//        back_button();
-//        break;
-//    }
-//
-//}
-// #pragma vector = TIMER0_A1_VECTOR
-// __interrupt void TimerA1_ISR(void)
-// {
-//     TA0CCR1 += 500;
-
-// }
 
 #pragma vector = RTC_VECTOR
 __interrupt void RTC_ISR(void)
@@ -183,7 +153,7 @@ __interrupt void RTC_ISR(void)
 void buzzer()
 {
     buzzer_on = true;
-    TA0CCR1 = 500;
+    TA0CCR1 = 2000;
 }
 
 void buzzer_off(){
@@ -211,6 +181,7 @@ void BCD2ASC(unsigned char src, char *dest)
     *dest++ = outputs[src & 0xf];
     *dest = '\0';
 }
+
 /*Searches for an empty container. An empty container is defined 
 by a NULL character. Returns the index of the empty container, else returns -1.
 pill_names represents the array of the pills in the device*/
@@ -241,17 +212,34 @@ char empty_schedule(){
     return -1;
 }
 
-// void display_set_name(unsigned char index)
-// {
-//     clear_display();
-//     send_string("Set Pill Name", 0);
-//     set_cursor(1, 7);
-//     send_string(name[index], 0);
-// }
 
 /* -------------------DISPLAYS------------------------*/
 //
 //
+
+// void display_dispensed_alarm()
+//  {
+//      char i;
+//      clear_display();
+//      set_cursor(0,3);
+//      send_string("Dispensing", 0);
+
+//      set_cursor(1,0);
+//      for(char i = 0; i < ALARMS_LENGTH; i++)
+//      {
+//          if(schedule[currentAlarm].quantities[i])
+//          {
+//              send_string(pill_names[i],0);
+//          }
+//      }
+//      send_string
+    
+//      //ltoa((long)schedule[currentAlarm].quantities[index], buffer, 10)
+//      send_string(pill_names[index], 0);
+//      send_string(" ", 0);
+//      send_string()
+//  }
+
 void display_quantity(unsigned char index)
 {
     clear_display();
@@ -338,7 +326,7 @@ void display_pill_list(char index)
     clear_display();
     send_string("Available Pills",0);
     set_cursor(1,0);
-    send_string("-",0);
+    //send_string("-",0);
     send_string(pill_names[index],0);
 }
 
@@ -656,9 +644,6 @@ void enter_button()
 
 
    }
-   //        if(view_alarms){
-   //
-   //        }
 
     else if(set_time){
 
@@ -684,7 +669,7 @@ void enter_button()
              
           }
 
-            if (minute_select){
+           else if (minute_select){
 
               minute_input = minute[minute_index];
                minute_select = false;
@@ -697,7 +682,7 @@ void enter_button()
                set_rtc_time(day_input, month_input, year_input, hour_input, minute_input);
               
            }
-            if (hour_select){
+           else if (hour_select){
                //set_cursor(0, 0);
                hour_input = hour[hour_index];
                hour_select = false;
