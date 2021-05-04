@@ -21,7 +21,7 @@ int steps = 0; //holds amount of steps the stepper motor should travel when call
 int angle = 0; //the current angle the stepper is moving to
 char stepperIndex = 0; //index to traverse stepper LUT
 char stepperAtOrigin = 0; //0 -> its at origin, 1 -> not at origin
-char currentDirection = 1; //direction for stepper, 1 or -1
+signed char currentDirection = 1; //direction for stepper, 1 or -1
 char pillContainers[8] = {0, 0, 0, 0, 0, 0, 0, 0}; //global variable so it can be accessed by all functions
 char currentContainer = 0; //index of the current container being dispensed
 char stepperMode = 1; //1 -> dispensing; 2 -> refill
@@ -49,6 +49,7 @@ void check_first_nonempty(void)
         {
             currentContainer = i; //save current container index
             angle = pillMap[i];   //save angle corresponding to that container
+            angle = angle * 1.4375;
             break;
         }
     }
@@ -74,11 +75,11 @@ void move_linear_actuator(char dir)
 {
     if (dir == 0)
     {                   //goes down
-        TB0CCR6 = 1700;
+        TB0CCR6 = 2200;
     }
     else
     {
-        TB0CCR6 = 2500;  //goes up
+        TB0CCR6 = 2600;  //goes up
     }
 
     if (dir == 1)
@@ -106,7 +107,7 @@ void stepper_handler(void)
         }
         else if ((stepperAtOrigin == 1) && (dispResetFlag == 1))
         {                                               //ya me movi, wanna move again to reset
-            currentDirection = currentDirection * (-1); //opposite direction to go back
+            currentDirection = -1; //opposite direction to go back
             steps = angle / 1.8;
             TA1CCTL0 |= CCIE; //enable stepper ISR
         }
@@ -126,7 +127,7 @@ void stepper_handler(void)
         }
         else if (stepperAtOrigin == 1)
         {                                               //it has moved
-            currentDirection = currentDirection * (-1); //opposite direction to go back
+            currentDirection = -1; //opposite direction to go back
             steps = angle / 1.8;
             TA1CCTL0 |= CCIE; //enable stepper ISR
         }
@@ -143,6 +144,7 @@ void refill_pills(char *containers)
         {
             currentContainer = i; //save container's index
             angle = pillMap[i];   //save container's corresponding angle
+            angle = angle * 1.4375;
             break;
         }
     }
@@ -205,7 +207,6 @@ __interrupt void stepper_ISR(void)
     TA1CCTL0 &= ~CCIFG; //clear CCIFG
     if (steps > 0)
     {
-        P3OUT &= ~LUT[stepperIndex];      //clear current output pins for stepper movement
         stepperIndex += currentDirection; //update index for next stepper movement
         //make the LUT iteration circular
         if (stepperIndex > 3)
@@ -217,7 +218,7 @@ __interrupt void stepper_ISR(void)
             stepperIndex = 3;
         }
         steps--;
-        P3OUT |= LUT[stepperIndex]; //set output pins to drive stepper movement
+        P3OUT = LUT[stepperIndex]; //set output pins to drive stepper movement
     }
     else
     {                      //no more steps to traverse, we're done moving the stepper motor
@@ -243,11 +244,11 @@ __interrupt void dispenser_ISR(void)
     TA2CCTL0 &= ~CCIFG; //clear CCIFG
     switch(dispStage){
     case 1:
-        TB0CCR5 = 1000; //align pill holes
+        TB0CCR5 = 1900; //align pill holes
         dispStage = 2;
         break;
     case 2:
-        TB0CCR5 = 1900; //rotate back
+        TB0CCR5 = 1000; //rotate back
         dispStage = 1;
         if (dispensedFlag == 1){
             pillsToDispense--;
