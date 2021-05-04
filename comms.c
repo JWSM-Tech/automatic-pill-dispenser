@@ -25,20 +25,16 @@ char *end_ptr;
 char *array_ptr;
 char *stop_array_ptr;
 
-int ADC_value = 0;
-
 
 #pragma vector = ADC12_VECTOR
 __interrupt void ADC12_ISR(void){
     switch(__even_in_range(ADC12IV, ADC12IV_ADC12RDYIFG)){
         case ADC12IV_ADC12IFG0: // ADC12MEM0 Interrupt
-                ADC_value = ADC12MEM0; // Save MEM0
-                    if(ADC_value < 2047)
+                    if(ADC12MEM0 < 2047)
                     {
                         schedule[get_current_alarm()].taken = true;
-                        build_analytics(get_current_alarm());
                     }
-                __bic_SR_register_on_exit(LPM0_bits);
+                LPM0_EXIT;
                 break;
         default: break;
     }

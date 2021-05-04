@@ -15,6 +15,9 @@
 
 // Functions
 
+
+extern char time_elapsed;
+
 void buzzer();
 void on(unsigned char index);
 void BCD2ASC(unsigned char src, char *dest);
