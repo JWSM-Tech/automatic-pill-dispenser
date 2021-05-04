@@ -257,7 +257,7 @@ __interrupt void dispenser_ISR(void)
             if (pillsToDispense == 0){
                 TA2CCTL0 &= ~CCIE; //disable dispenser ISR
                 stage++;
-                TA0CCTL0 |= CCIE; //enable interrupt for stages ISR
+                TA3CCTL0 |= CCIE; //enable interrupt for stages ISR
             }
         }
         break;
