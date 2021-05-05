@@ -30,7 +30,7 @@ char pillsToDispense = 0; //keep track of how many pills we have left to dispens
 char remainingPills = 0; //keep track of total pills to dispense for an alarm
 char stage = 1; //stages for the dispensing mechanism
 char dispensedFlag = 0; //signals if a pill was dispensed or not
-char dispStage = 1; //stage for dispensing servo sequence
+//char dispStage = 1; //stage for dispensing servo sequence
 char servo_toggle = 0; //0 = 0, 1 = 180
 
 void dispensing_sequence(char *internalPillContainers)
@@ -108,7 +108,7 @@ void stepper_handler(void)
         }
         else if ((stepperAtOrigin == 1) && (dispResetFlag == 1))
         {                                               //ya me movi, wanna move again to reset
-            currentDirection = -1; //opposite direction to go back
+            currentDirection = currentDirection*(-1); //opposite direction to go back
             steps = angle / 1.8;
             TA1CCTL0 |= CCIE; //enable stepper ISR
         }
@@ -128,7 +128,7 @@ void stepper_handler(void)
         }
         else if (stepperAtOrigin == 1)
         {                                               //it has moved
-            currentDirection = -1; //opposite direction to go back
+            currentDirection = currentDirection*(-1); //opposite direction to go back
             steps = angle / 1.8;
             TA1CCTL0 |= CCIE; //enable stepper ISR
         }
@@ -201,7 +201,7 @@ __interrupt void stages_ISR(void)
         break;
     case 7: //stage 6 - delay stage
         TB0CCR5 = 1000; //reset dispenser servo
-        servo_toggle = 0;
+//        servo_toggle = 0;
         stage++;
         TA3CCTL0 |= CCIE; //enable interrupt
         break;
@@ -219,7 +219,7 @@ __interrupt void stages_ISR(void)
             TA3CCTL0 |= CCIE; //reenable ISR
         } else {
             stage = 1;
-//            servo_toggle = 0;
+            servo_toggle = 0;
         }
         dispResetFlag = 0;
         break;
@@ -230,34 +230,25 @@ __interrupt void stages_ISR(void)
 __interrupt void stepper_ISR(void)
 {
     TA1CCTL0 &= ~CCIFG; //clear CCIFG
-    if (steps > 0)
-    {
+    if (steps > 0){
+        P3OUT &= ~LUT[stepperIndex]; //clear current output pins for stepper movement
         stepperIndex += currentDirection; //update index for next stepper movement
         //make the LUT iteration circular
-        if (stepperIndex > 3)
-        {
+        if (stepperIndex > 3){
             stepperIndex = 0;
-        }
-        else if (stepperIndex < 0)
-        {
+        } else if (stepperIndex < 0){
             stepperIndex = 3;
         }
         steps--;
-        P3OUT = LUT[stepperIndex]; //set output pins to drive stepper movement
-    }
-    else
-    {                      //no more steps to traverse, we're done moving the stepper motor
+        P3OUT |= LUT[stepperIndex]; //set output pins to drive stepper movement
+    } else { //no more steps to traverse, we're done moving the stepper motor
         TA1CCTL0 &= ~CCIE; //disable compare interrupt
-        if (stepperAtOrigin == 0)
-        {
+        if (stepperAtOrigin == 0){
             stepperAtOrigin = 1;
-        }
-        else
-        {
+        } else {
             stepperAtOrigin = 0;
         }
-        if (stepperMode == 1)
-        { //if in dispensing mode
+        if (stepperMode == 1){ //if in dispensing mode
             stepper_handler();
         }
     }
