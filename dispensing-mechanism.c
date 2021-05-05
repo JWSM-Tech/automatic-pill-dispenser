@@ -31,6 +31,7 @@ char remainingPills = 0; //keep track of total pills to dispense for an alarm
 char stage = 1; //stages for the dispensing mechanism
 char dispensedFlag = 0; //signals if a pill was dispensed or not
 char dispStage = 1; //stage for dispensing servo sequence
+char servo_toggle = 0; //0 = 0, 1 = 180
 
 void dispensing_sequence(char *internalPillContainers)
 {                                              //stage 1 - set up
@@ -49,7 +50,7 @@ void check_first_nonempty(void)
         {
             currentContainer = i; //save current container index
             angle = pillMap[i];   //save angle corresponding to that container
-            angle = angle * 1.4375;
+//            angle = angle * 1.4375;
             break;
         }
     }
@@ -75,11 +76,11 @@ void move_linear_actuator(char dir)
 {
     if (dir == 0)
     {                   //goes down
-        TB0CCR6 = 2200;
+        TB0CCR6 = 1600;
     }
     else
     {
-        TB0CCR6 = 2600;  //goes up
+        TB0CCR6 = 2000;  //goes up
     }
 
     if (dir == 1)
@@ -134,6 +135,23 @@ void stepper_handler(void)
     }
 }
 
+void dispense_pill(void){
+    if (pillsToDispense > 0){
+        //move the rotating disc inside the pill container to see if the pill falls
+        if (servo_toggle == 1){ //it's in 0 deg
+            servo_toggle = 0; //toggle variable
+            TB0CCR5 = 1000; // closed
+        } else {
+            servo_toggle = 1; //toggle variable
+            TB0CCR5 = 1900; // open
+        }
+        TA2CCTL0 |= CCIE; //enable dispenser ISR that polls dispensed flag every two seconds
+    } else { //we're done dispensing
+        stage++; //move from stage 4 to stage 5
+        TA3CCTL0 |= CCIE; //enable interrupt for stages ISR
+    }
+}
+
 void refill_pills(char *containers)
 {
     stepperMode = 2; //set to refill mode
@@ -144,7 +162,7 @@ void refill_pills(char *containers)
         {
             currentContainer = i; //save container's index
             angle = pillMap[i];   //save container's corresponding angle
-            angle = angle * 1.4375;
+//            angle = angle * 1.4375;
             break;
         }
     }
@@ -171,30 +189,37 @@ __interrupt void stages_ISR(void)
     case 3:
         stepper_handler(); //stage 3 - move stepper to align corresponding pill container with dispenser
         break;
-    case 4:
-        move_linear_actuator(1); //stage 4 - raise dipsenser servo into pill contaier
-        break;
-    case 5:
-        TA2CCTL0 |= CCIE;  //stage 5 - enable dispenser ISR to move dispenser servo
-        break;
-    case 6: //stage 6 - delay stage
+    case 4: //stage 4 - delay stage
         stage++;
         TA3CCTL0 |= CCIE; //enable interrupt
         break;
-    case 7:
+    case 5:
+        move_linear_actuator(1); //stage 5 - raise dipsenser servo into pill contaier
+        break;
+    case 6:
+        dispense_pill();  //stage 6
+        break;
+    case 7: //stage 6 - delay stage
+        TB0CCR5 = 1000; //reset dispenser servo
+        servo_toggle = 0;
+        stage++;
+        TA3CCTL0 |= CCIE; //enable interrupt
+        break;
+    case 8:
         move_linear_actuator(0); //stage 7
         break;
-    case 8: //stage 8
+    case 9: //stage 8
         dispResetFlag = 1;
         pillContainers[currentContainer] = 0; //discard pills from current container
         stepper_handler();
         break;
-    case 9:
+    case 10:
         if (remainingPills > 0){
             stage = 2;
             TA3CCTL0 |= CCIE; //reenable ISR
         } else {
             stage = 1;
+//            servo_toggle = 0;
         }
         dispResetFlag = 0;
         break;
@@ -242,24 +267,11 @@ __interrupt void stepper_ISR(void)
 __interrupt void dispenser_ISR(void)
 {
     TA2CCTL0 &= ~CCIFG; //clear CCIFG
-    switch(dispStage){
-    case 1:
-        TB0CCR5 = 1900; //align pill holes
-        dispStage = 2;
-        break;
-    case 2:
-        TB0CCR5 = 1000; //rotate back
-        dispStage = 1;
-        if (dispensedFlag == 1){
-            pillsToDispense--;
-            remainingPills--;
-            dispensedFlag = 0;
-            if (pillsToDispense == 0){
-                TA2CCTL0 &= ~CCIE; //disable dispenser ISR
-                stage++;
-                TA3CCTL0 |= CCIE; //enable interrupt for stages ISR
-            }
-        }
-        break;
+    TA2CCTL0 &= ~CCIE; //disable dispenser ISR
+    if (dispensedFlag == 1){
+        pillsToDispense--; //decrement amount of pills to dispense
+        remainingPills--; //decrement total amount of pills to dispense
+        dispensedFlag = 0; //reset flag for next pill
     }
+    dispense_pill(); //call again to see if we keep going or if we're done
 }

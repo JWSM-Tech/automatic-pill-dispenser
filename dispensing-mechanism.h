@@ -12,6 +12,7 @@ void check_first_nonempty(void);
 void make_array_global(char *array);
 void move_linear_actuator(char dir);
 void stepper_handler(void);
+void dispense_pill(void);
 void refill_pills(char *containers);
 void done_refilling(void);
 

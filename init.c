@@ -116,7 +116,7 @@ void init_disp_mech(void)
     TB0CCTL0 &= ~CAP;    //set CAP = 0 for compare mode
     // initialize at 90 deg = ~1.5ms (testing with 1700)
     TB0CCR5 = 1000; //used to be 1700
-    TB0CCR6 = 2200;
+    TB0CCR6 = 1600;
     TB0CTL |= TBSSEL__SMCLK + MC__UP + ID_0 + TBCLR; //select SMCLK, divider /1
     TB0CCR0 = 20000 - 1;                             // 1000000/50Hz=20000 for 50Hz PWM period - make TB0CCR0 different from 0 to start the timer
 
