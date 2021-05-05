@@ -105,6 +105,7 @@ __interrupt void port2_handler(void)
     }
 }
 
+///*--------------------------------------------RTC ISR------------------------*///
 
 #pragma vector = RTC_VECTOR
 __interrupt void RTC_ISR(void)
@@ -166,8 +167,6 @@ __interrupt void RTC_ISR(void)
     }
 }
 
-// Functions
-
 void buzzer()
 {
     buzzer_on = true;
@@ -178,6 +177,15 @@ void buzzer_off(){
     TA0CCR1 = 0;
    buzzer_on = false;
    dispensing_sequence(schedule[currentAlarm].quantities);
+   
+   char i;
+   for(i = 0; i<ALARMS_LENGTH;i++)
+   {
+       if(schedule[currentAlarm].quantities[i])
+       {
+           pill_quantities[i] -= schedule[currentAlarm].quantities[i];
+       }
+   }
 
 }
 
@@ -358,7 +366,7 @@ void display_different_pills_quantity(unsigned char index)
     send_string(buffer,0);
 } 
 
-/* -----------------SCHEDULING SYSTEM -------------*/
+/* -----------------------------------------------SCHEDULING SYSTEM ----------------------------------------------------*/
 //
 //
 
@@ -384,6 +392,7 @@ void add_alarm(unsigned char hour, unsigned char minute, char* quantity){
 void add_pills(char* pill_name, char pill_quantity)
 {   if(pill_count<=8)
     {
+    //refill_pills() send a array of selected container
     char slot = empty_container();
     strcpy(pill_names[slot], pill_name);
     pill_quantities[slot] = pill_quantity;
@@ -464,6 +473,8 @@ char get_current_alarm()
     return currentAlarm;
 }
 
+///*--------------------------------END SCHEDULING SYSTEM-------------------------------------------------------------------------*///
+
 
 void set_rtc_time(unsigned char day, unsigned char month, unsigned char year, unsigned char hour, unsigned char minute){
 
@@ -496,6 +507,7 @@ void enter_button()
     {
         on(menu_index); 
         //call dispensing mechanism of returning to original state
+        done_refilling();
     }
 
     
