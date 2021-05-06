@@ -599,7 +599,14 @@ char* build_add_reminder_data(unsigned char index){
 
     int i;
     for(i = 0; i< 8; i++){
-        strcat(TXSendBuffer, ltoa(schedule[index].quantities[i], temp_string, 10));
+        ltoa(schedule[index].quantities[i], temp_string, 10);
+        if(pill_quantities[i] < 10)
+        {
+            temp_string[0] = '0';
+            temp_string[1] = pill_quantities[i] + '0';
+            temp_string[2] = '\0';
+        }
+        strcat(TXSendBuffer, temp_string);
 
         if(i < 7)
             strcat(TXSendBuffer, ",");
