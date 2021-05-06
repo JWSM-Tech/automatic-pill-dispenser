@@ -12,6 +12,7 @@ char pill_count = 0;
 char dummy_quantity = 0;
 char button;
 char currentAlarm;
+char time_elapsed = 0;
 
 #pragma PERSISTENT(menu)
 const char *menu[] = {"1.Add Alarm", "2.Set Time", "3.View Alarms", "4.Add Pill", "5.View Pills"};
@@ -121,21 +122,38 @@ __interrupt void RTC_ISR(void)
         break;
     case RTCIV_RTCTEVIFG: // RTCEVIFG Check if an alarm is supposed to be set
     {
-        int i;
-        for (i = 0; i < ALARMS_LENGTH; i++)
+        if(time_elapsed > 0)
         {
-
-            if (schedule[i].hour == RTCHOUR && schedule[i].minute == RTCMIN)
+            if(schedule[get_current_alarm()].taken || time_elapsed == 6)
             {
-                buzzer();
-                currentAlarm = i;
-                //display dispensing pill
-                //dispensing_sequence(schedule[i].quantities);
-                //display corresponding alarm
+                time_elapsed = 0;
+                send_uart(sendAnalyticsParam, currentAlarm);
+            }
+            else
+            {
+                time_elapsed++;
             }
         }
+        else
+        {
+            int i;
 
-        __no_operation(); // Interrupts every minute
+            for (i = 0; i < ALARMS_LENGTH; i++)
+            {
+
+                if (schedule[i].hour == RTCHOUR && schedule[i].minute == RTCMIN)
+                {
+                    buzzer();
+                    currentAlarm = i;
+                    time_elapsed++;
+                    //display dispensing pill
+                    //dispensing_sequence(schedule[i].quantities);
+                    //display corresponding alarm
+                }
+            }
+
+            __no_operation(); // Interrupts every minute
+        }
         break;
     }
     case RTCIV_RTCAIFG:
@@ -168,7 +186,7 @@ void buzzer_off(){
            pill_quantities[i] -= schedule[currentAlarm].quantities[i];
        }
    }
-  
+   send_uart(sendRefillParam, 0);
 
 }
 

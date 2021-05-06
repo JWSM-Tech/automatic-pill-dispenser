@@ -15,7 +15,7 @@ char buffer_index = 0;
 
 unsigned char temp_hour;
 unsigned char temp_minute;
-int temp_quantities[8];
+char temp_quantities[8];
 char temp_pill_names[8][15];
 
 char *temp_string;
@@ -25,20 +25,16 @@ char *end_ptr;
 char *array_ptr;
 char *stop_array_ptr;
 
-int ADC_value = 0;
-
 
 #pragma vector = ADC12_VECTOR
 __interrupt void ADC12_ISR(void){
     switch(__even_in_range(ADC12IV, ADC12IV_ADC12RDYIFG)){
         case ADC12IV_ADC12IFG0: // ADC12MEM0 Interrupt
-                ADC_value = ADC12MEM0; // Save MEM0
-                    if(ADC_value < 2047)
+                    if(ADC12MEM0 < 2047)
                     {
                         schedule[get_current_alarm()].taken = true;
-                        build_analytics(get_current_alarm());
                     }
-                __bic_SR_register_on_exit(LPM0_bits);
+                LPM0_EXIT;
                 break;
         default: break;
     }
@@ -78,15 +74,6 @@ __interrupt void USCI_A0_ISR(void)
         break;
     case USCI_UART_UCTXCPTIFG:
         break;
-    }
-}
-
-void empty_buffer(unsigned char *buffer, int size)
-{
-    unsigned int i;
-    for (i = 0; i < size; i++)
-    {
-        buffer[i] = '\0';
     }
 }
 
@@ -612,7 +599,14 @@ char* build_add_reminder_data(unsigned char index){
 
     int i;
     for(i = 0; i< 8; i++){
-        strcat(TXSendBuffer, ltoa(schedule[index].quantities[i], temp_string, 10));
+        ltoa(schedule[index].quantities[i], temp_string, 10);
+        if(pill_quantities[i] < 10)
+        {
+            temp_string[0] = '0';
+            temp_string[1] = pill_quantities[i] + '0';
+            temp_string[2] = '\0';
+        }
+        strcat(TXSendBuffer, temp_string);
 
         if(i < 7)
             strcat(TXSendBuffer, ",");
@@ -642,8 +636,15 @@ char* build_refill_pills(){
     strcat(TXSendBuffer, pillQuantities_field);
     strcat(TXSendBuffer, ":[");
     int i;
-    for(i = 0; i< 8; i++){
-        strcat(TXSendBuffer, ltoa(pill_quantities[i], temp_string, 10));
+    for(i = 0; i< MAXIMUM_PILLS - 1; i++){
+        ltoa(pill_quantities[i], temp_string, 10);
+        if(pill_quantities[i] < 10)
+    {
+        temp_string[0] = '0';
+        temp_string[1] = pill_quantities[i] + '0';
+        temp_string[2] = '\0';
+    }
+        strcat(TXSendBuffer, temp_string);
 
         if(i < 7)
             strcat(TXSendBuffer, ",");
@@ -728,13 +729,11 @@ void send_uart(char param, char index){ //this function sends the data from MSP4
 
     int length = strlen(send_ptr);
 
+
     while(length){
 
         while(!(UCA0IFG & UCTXIFG)); // Wait for TX buffer to be ready for new data
-
-
             UCA0TXBUF = *send_ptr; // Push data to TX buffer
-
             // Update variables
             length--;
             send_ptr++;

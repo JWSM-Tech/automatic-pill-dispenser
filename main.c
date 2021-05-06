@@ -53,6 +53,11 @@ int main(void)
                 check_params(RX_data);
                 finished_rx = false;
             }
+            else if(time_elapsed && !schedule[get_current_alarm()].taken)
+            {
+                ADC12CTL0 |= ADC12ENC | ADC12SC; // Enable and Start conversion
+                __bis_SR_register(LPM0_bits + GIE); // LPM0, ADC12_ISR will force exit
+            }
             else
             {
                 _bis_SR_register(LPM0_bits + GIE);
