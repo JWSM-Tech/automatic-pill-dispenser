@@ -19,21 +19,21 @@ int pillMap[8] = {0, 45, 90, 135, 180, 225, 270, 315}; //mapping pill container 
 
 int steps = 0; //holds amount of steps the stepper motor should travel when called
 int angle = 0; //the current angle the stepper is moving to
-char stepperIndex = 0; //index to traverse stepper LUT
-char stepperAtOrigin = 0; //0 -> its at origin, 1 -> not at origin
-signed char currentDirection = 1; //direction for stepper, 1 or -1
-char pillContainers[8] = {0, 0, 0, 0, 0, 0, 0, 0}; //global variable so it can be accessed by all functions
-char currentContainer = 0; //index of the current container being dispensed
-char stepperMode = 1; //1 -> dispensing; 2 -> refill
-char dispResetFlag = 0; //reset flag to indicate if the stepper is moving to reset container positions or to dispense pills
-char pillsToDispense = 0; //keep track of how many pills we have left to dispense for each container during the dispensing sequence
-char remainingPills = 0; //keep track of total pills to dispense for an alarm
-char stage = 1; //stages for the dispensing mechanism
-char dispensedFlag = 0; //signals if a pill was dispensed or not
-//char dispStage = 1; //stage for dispensing servo sequence
-char servo_toggle = 0; //0 = 0, 1 = 180
+int stepperIndex = 0; //index to traverse stepper LUT
+int stepperAtOrigin = 0; //0 -> its at origin, 1 -> not at origin
+signed int currentDirection = 1; //direction for stepper, 1 or -1
+int pillContainers[8] = {0, 0, 0, 0, 0, 0, 0, 0}; //global variable so it can be accessed by all functions
+int currentContainer = 0; //index of the current container being dispensed
+int stepperMode = 1; //1 -> dispensing; 2 -> refill
+int dispResetFlag = 0; //reset flag to indicate if the stepper is moving to reset container positions or to dispense pills
+int pillsToDispense = 0; //keep track of how many pills we have left to dispense for each container during the dispensing sequence
+int remainingPills = 0; //keep track of total pills to dispense for an alarm
+int stage = 1; //stages for the dispensing mechanism
+int dispensedFlag = 0; //signals if a pill was dispensed or not
+//int dispStage = 1; //stage for dispensing servo sequence
+int servo_toggle = 0; //0 = 0, 1 = 180
 
-void dispensing_sequence(char *internalPillContainers)
+void dispensing_sequence(int *internalPillContainers)
 {                                              //stage 1 - set up
     make_array_global(internalPillContainers); //save to global variable so it can be accessed by other functions
     stepperMode = 1;                           //set to dispensing mode
@@ -43,7 +43,7 @@ void dispensing_sequence(char *internalPillContainers)
 
 void check_first_nonempty(void)
 {
-    char i;
+    int i;
     for (i = 0; i < 8; i++)
     {
         if (pillContainers[i] != 0)
@@ -58,9 +58,9 @@ void check_first_nonempty(void)
     TA3CCTL0 |= CCIE; //enable stages isr
 }
 
-void make_array_global(char *array)
+void make_array_global(int *array)
 {
-    char i;
+    int i;
     remainingPills = 0; //reset in case it wasnt 0
     for (i = 0; i < 8; i++)
     {
@@ -72,7 +72,7 @@ void make_array_global(char *array)
     }
 }
 
-void move_linear_actuator(char dir)
+void move_linear_actuator(int dir)
 {
     if (dir == 0)
     {                   //goes down
@@ -152,10 +152,10 @@ void dispense_pill(void){
     }
 }
 
-void refill_pills(char *containers)
+void refill_pills(int *containers)
 {
     stepperMode = 2; //set to refill mode
-    char i;
+    int i;
     for (i = 0; i < 8; i++)
     {
         if (containers[i] != 0)
