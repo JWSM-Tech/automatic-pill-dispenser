@@ -514,6 +514,7 @@ void enter_button()
         on(menu_index);
         //call dispensing mechanism of returning to original state
         done_refilling();
+        refilling = false;
     }
 
     else if (main_menu)
