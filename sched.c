@@ -394,16 +394,24 @@ void add_pills(char *pill_name, char pill_quantity)
 {
     if (pill_count <= 8)
     {
+        refilling = true;
+        int array[8] = {0};
         //refill_pills() send a array of selected container
         char slot = empty_container();
         strcpy(pill_names[slot], pill_name);
         pill_quantities[slot] = pill_quantity;
+        array[slot] = (int)pill_quantity;
+        refill_pills(array);
+
+        clear_display();
+        set_cursor(0, 3);
+        send_string("Adding Pills", 0);
+        set_cursor(1, 0);
+        send_string("ENTER if done", 0);
         pill_count++;
-        //return true;
+
         send_uart(sendAddPillParam, slot);
     }
-
-    //return false;
 }
 
 void remove_alarm(unsigned char hour, unsigned char minute, char *quantity)
@@ -512,7 +520,6 @@ void enter_button()
     else if (refilling)
     {
         on(menu_index);
-        //call dispensing mechanism of returning to original state
         done_refilling();
         refilling = false;
     }
@@ -573,7 +580,6 @@ void enter_button()
         {
             main_menu = false;
             view_pills = true;
-            //display pill list;
             display_pill_list(pill_name_index);
         }
     }
@@ -620,17 +626,14 @@ void enter_button()
             minute_input = minute[minute_index];
             minute_select = false;
             different_pills_select = true;
-            //display select diferent pills menu
             display_different_pills_quantity(different_pills_index); // update counter in up/down button
         }
         else if (hour_select) // SELECCION DE HORA DE ALARMA
         {
-            //set_cursor(0, 0);
-            //schedule[alarms_count].hour = hour[hour_index]; // hour_input = hour[hour_index], llamar add_alarm cuando el minuto tambien este set
+
             hour_input = hour[hour_index];
             hour_select = false;
             minute_select = true;
-            //set_cursor(0, 3);
         }
         else if (different_pills_select) // SELECCION DE # DE DIFERENTES PASTILLAS A DISPENSAR EN LA ALARMA
         {
@@ -642,7 +645,7 @@ void enter_button()
 
         else if (pill_list) // SELECCION DE CONTAINER(NOMBRE DE PASTILLA) A AÑADIR A LA ALARMA
         {
-            //display_pill_list(pill_name_index);
+
             set_quantities = true;
             pill_list = false;
             display_quantity(quantities_index); // ? pasar aqui el index del pill seleccionado
@@ -714,13 +717,58 @@ void enter_button()
         }
         else if (hour_select)
         {
-            //set_cursor(0, 0);
+
             hour_input = hour[hour_index];
             hour_select = false;
             minute_select = true;
             set_cursor(0, 3);
         }
     }
+
+    if (year_select)
+    {
+        year_select = false;
+        hour_select = true;
+        year_input = minute[year_index];
+        display_time(0, 0);
+    }
+    else if (month_select)
+    { // cursor in hours
+        set_cursor(0, 6);
+        month_select = false;
+        year_select = true;
+        month_input = minute[month_index]; //using minute array for memory conservation
+    }
+    else if (day_select)
+    {
+        set_cursor(0, 3);
+        day_select = false;
+        month_select = true;
+        day_input = minute[day_index];
+    }
+
+    else if (minute_select)
+    {
+
+        minute_input = minute[minute_index];
+        minute_select = false;
+        hour_index = 0;
+        minute_index = 0;
+        on(menu_index);
+        main_menu = true;
+        set_alarm = false;
+        set_time = false;
+        set_rtc_time(day_input, month_input, year_input, hour_input, minute_input);
+    }
+    else if (hour_select)
+    {
+        //set_cursor(0, 0);
+        hour_input = hour[hour_index];
+        hour_select = false;
+        minute_select = true;
+        set_cursor(0, 3);
+    }
+}
 }
 
 void back_button()
@@ -732,7 +780,6 @@ void back_button()
             hour_select = false;
             set_alarm = false;
             main_menu = true;
-            //menu_index = 0;
             on(menu_index);
         }
 
