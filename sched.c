@@ -769,7 +769,6 @@ void enter_button()
         set_cursor(0, 3);
     }
 }
-}
 
 void back_button()
 {
